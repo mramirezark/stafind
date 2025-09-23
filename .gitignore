@@ -1,0 +1,389 @@
+# ============================================================================
+# GITIGNORE - StaffFind Project
+# ============================================================================
+# This file specifies intentionally untracked files that Git should ignore
+# https://git-scm.com/docs/gitignore
+
+# ============================================================================
+# DEPENDENCIES
+# ============================================================================
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Package manager lock files (keep one, ignore others)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ============================================================================
+# BUILD OUTPUTS
+# ============================================================================
+
+# Next.js build output
+.next/
+out/
+
+# Production build
+build/
+dist/
+
+# Static files
+*.tgz
+*.tar.gz
+
+# ============================================================================
+# ENVIRONMENT & CONFIGURATION
+# ============================================================================
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Configuration files with sensitive data
+config.json
+secrets.json
+*.config.local.js
+*.config.local.ts
+
+# ============================================================================
+# LOGS
+# ============================================================================
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================================================
+# CACHES
+# ============================================================================
+
+# Next.js cache
+.next/
+.vercel/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# Stylelint cache
+.stylelintcache
+
+# Webpack cache
+.webpack/
+
+# Parcel cache
+.cache/
+.parcel-cache/
+
+# ============================================================================
+# TESTING
+# ============================================================================
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output/
+
+# Jest
+.jest/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ============================================================================
+# IDE & EDITORS
+# ============================================================================
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+# JetBrains IDEs
+.idea/
+*.swp
+*.swo
+*~
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================================================
+# OPERATING SYSTEM
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# DATABASE
+# ============================================================================
+
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+
+# PostgreSQL
+*.pgsql
+*.sql
+
+# MySQL
+*.sql
+
+# ============================================================================
+# BACKEND SPECIFIC
+# ============================================================================
+
+# Go
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Go modules
+go.sum
+
+# ============================================================================
+# FRONTEND SPECIFIC
+# ============================================================================
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+dist/
+
+# Gatsby
+.cache/
+public/
+
+# Storybook
+storybook-static/
+
+# ============================================================================
+# DEPLOYMENT
+# ============================================================================
+
+# Vercel
+.vercel
+
+# Netlify
+.netlify/
+
+# Heroku
+.heroku/
+
+# ============================================================================
+# TEMPORARY FILES
+# ============================================================================
+
+# Temporary folders
+tmp/
+temp/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================================================
+# SECURITY
+# ============================================================================
+
+# Private keys
+*.pem
+*.key
+*.crt
+*.csr
+
+# Certificates
+*.p12
+*.pfx
+
+# ============================================================================
+# MISC
+# ============================================================================
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.test
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ============================================================================
+# PROJECT SPECIFIC
+# ============================================================================
+
+# StaffFind specific files
+uploads/
+temp/
+backup/
+*.backup
+
+# Database dumps
+*.sql.gz
+*.dump
+
+# Local development files
+local/
+dev/
+
+# Environment files (already covered above, but being explicit)
+env.local
+.env.local
+docker.env
+
+# Go binary
+server
+
+# Next.js build artifacts
+.next/
+out/
+
+# IDE specific
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db

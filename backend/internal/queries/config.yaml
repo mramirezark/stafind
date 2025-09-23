@@ -1,0 +1,448 @@
+# Query Configuration
+# This file defines all SQL queries with metadata, parameters, and organization
+
+queries:
+  # Employee-related queries
+  employees:
+    get_all_employees:
+      description: "Retrieve all employees with their basic information"
+      category: "employees"
+      operation: "select"
+      parameters: []
+      tags: ["employees", "list", "basic"]
+      sql_file: "employees.sql"
+      
+    get_employee_by_id:
+      description: "Retrieve a specific employee by ID"
+      category: "employees"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Employee ID"
+      tags: ["employees", "single", "by_id"]
+      sql_file: "employees.sql"
+      
+    create_employee:
+      description: "Create a new employee record"
+      category: "employees"
+      operation: "insert"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Employee full name"
+        - name: "email"
+          type: "string"
+          required: true
+          description: "Employee email address"
+        - name: "department"
+          type: "string"
+          required: false
+          description: "Employee department"
+        - name: "level"
+          type: "string"
+          required: false
+          description: "Employee experience level"
+        - name: "location"
+          type: "string"
+          required: false
+          description: "Employee location"
+        - name: "bio"
+          type: "string"
+          required: false
+          description: "Employee biography"
+      tags: ["employees", "create", "insert"]
+      sql_file: "employees.sql"
+      
+    update_employee:
+      description: "Update an existing employee record"
+      category: "employees"
+      operation: "update"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Employee full name"
+        - name: "email"
+          type: "string"
+          required: true
+          description: "Employee email address"
+        - name: "department"
+          type: "string"
+          required: false
+          description: "Employee department"
+        - name: "level"
+          type: "string"
+          required: false
+          description: "Employee experience level"
+        - name: "location"
+          type: "string"
+          required: false
+          description: "Employee location"
+        - name: "bio"
+          type: "string"
+          required: false
+          description: "Employee biography"
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Employee ID to update"
+      tags: ["employees", "update", "modify"]
+      sql_file: "employees.sql"
+      
+    delete_employee:
+      description: "Delete an employee record"
+      category: "employees"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Employee ID to delete"
+      tags: ["employees", "delete", "remove"]
+      sql_file: "employees.sql"
+      
+    get_employee_skills:
+      description: "Get all skills for a specific employee"
+      category: "employees"
+      operation: "select"
+      parameters:
+        - name: "employee_id"
+          type: "int"
+          required: true
+          description: "Employee ID"
+      tags: ["employees", "skills", "relationships"]
+      sql_file: "employees.sql"
+      
+    add_employee_skill:
+      description: "Add a skill relationship to an employee"
+      category: "employees"
+      operation: "insert"
+      parameters:
+        - name: "employee_id"
+          type: "int"
+          required: true
+          description: "Employee ID"
+        - name: "skill_id"
+          type: "int"
+          required: true
+          description: "Skill ID"
+        - name: "proficiency_level"
+          type: "int"
+          required: true
+          description: "Proficiency level (1-5)"
+        - name: "years_experience"
+          type: "float"
+          required: true
+          description: "Years of experience"
+      tags: ["employees", "skills", "relationships"]
+      sql_file: "employees.sql"
+      
+    remove_employee_skills:
+      description: "Remove all skill relationships for an employee"
+      category: "employees"
+      operation: "delete"
+      parameters:
+        - name: "employee_id"
+          type: "int"
+          required: true
+          description: "Employee ID"
+      tags: ["employees", "skills", "cleanup"]
+      sql_file: "employees.sql"
+
+  # Job Request-related queries
+  job_requests:
+    get_all_job_requests:
+      description: "Retrieve all job requests ordered by creation date"
+      category: "job_requests"
+      operation: "select"
+      parameters: []
+      tags: ["job_requests", "list", "all"]
+      sql_file: "job_requests.sql"
+      
+    get_job_request_by_id:
+      description: "Retrieve a specific job request by ID"
+      category: "job_requests"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Job request ID"
+      tags: ["job_requests", "single", "by_id"]
+      sql_file: "job_requests.sql"
+      
+    create_job_request:
+      description: "Create a new job request"
+      category: "job_requests"
+      operation: "insert"
+      parameters:
+        - name: "title"
+          type: "string"
+          required: true
+          description: "Job title"
+        - name: "description"
+          type: "string"
+          required: false
+          description: "Job description"
+        - name: "department"
+          type: "string"
+          required: false
+          description: "Department"
+        - name: "required_skills"
+          type: "json"
+          required: false
+          description: "Required skills as JSON array"
+        - name: "preferred_skills"
+          type: "json"
+          required: false
+          description: "Preferred skills as JSON array"
+        - name: "experience_level"
+          type: "string"
+          required: false
+          description: "Required experience level"
+        - name: "location"
+          type: "string"
+          required: false
+          description: "Job location"
+        - name: "priority"
+          type: "string"
+          required: false
+          description: "Job priority"
+        - name: "created_by"
+          type: "string"
+          required: false
+          description: "Created by user"
+      tags: ["job_requests", "create", "insert"]
+      sql_file: "job_requests.sql"
+      
+    update_job_request:
+      description: "Update an existing job request"
+      category: "job_requests"
+      operation: "update"
+      parameters:
+        - name: "title"
+          type: "string"
+          required: true
+          description: "Job title"
+        - name: "description"
+          type: "string"
+          required: false
+          description: "Job description"
+        - name: "department"
+          type: "string"
+          required: false
+          description: "Department"
+        - name: "required_skills"
+          type: "json"
+          required: false
+          description: "Required skills as JSON array"
+        - name: "preferred_skills"
+          type: "json"
+          required: false
+          description: "Preferred skills as JSON array"
+        - name: "experience_level"
+          type: "string"
+          required: false
+          description: "Required experience level"
+        - name: "location"
+          type: "string"
+          required: false
+          description: "Job location"
+        - name: "priority"
+          type: "string"
+          required: false
+          description: "Job priority"
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Job request ID to update"
+      tags: ["job_requests", "update", "modify"]
+      sql_file: "job_requests.sql"
+      
+    delete_job_request:
+      description: "Delete a job request"
+      category: "job_requests"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Job request ID to delete"
+      tags: ["job_requests", "delete", "remove"]
+      sql_file: "job_requests.sql"
+
+  # Skill-related queries
+  skills:
+    get_all_skills:
+      description: "Retrieve all available skills"
+      category: "skills"
+      operation: "select"
+      parameters: []
+      tags: ["skills", "list", "all"]
+      sql_file: "skills.sql"
+      
+    get_skill_by_id:
+      description: "Retrieve a skill by ID"
+      category: "skills"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Skill ID"
+      tags: ["skills", "single", "by_id"]
+      sql_file: "skills.sql"
+      
+    get_skill_by_name:
+      description: "Retrieve a skill by name"
+      category: "skills"
+      operation: "select"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Skill name"
+      tags: ["skills", "single", "by_name"]
+      sql_file: "skills.sql"
+      
+    create_skill:
+      description: "Create a new skill"
+      category: "skills"
+      operation: "insert"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Skill name"
+        - name: "category"
+          type: "string"
+          required: false
+          description: "Skill category"
+      tags: ["skills", "create", "insert"]
+      sql_file: "skills.sql"
+      
+    update_skill:
+      description: "Update an existing skill"
+      category: "skills"
+      operation: "update"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Skill name"
+        - name: "category"
+          type: "string"
+          required: false
+          description: "Skill category"
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Skill ID to update"
+      tags: ["skills", "update", "modify"]
+      sql_file: "skills.sql"
+      
+    delete_skill:
+      description: "Delete a skill"
+      category: "skills"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Skill ID to delete"
+      tags: ["skills", "delete", "remove"]
+      sql_file: "skills.sql"
+
+  # Match-related queries
+  matches:
+    get_matches_by_job_request:
+      description: "Get all matches for a specific job request"
+      category: "matches"
+      operation: "select"
+      parameters:
+        - name: "job_request_id"
+          type: "int"
+          required: true
+          description: "Job request ID"
+      tags: ["matches", "job_requests", "relationships"]
+      sql_file: "matches.sql"
+      
+    create_match:
+      description: "Create a new match record"
+      category: "matches"
+      operation: "insert"
+      parameters:
+        - name: "job_request_id"
+          type: "int"
+          required: true
+          description: "Job request ID"
+        - name: "engineer_id"
+          type: "int"
+          required: true
+          description: "Engineer ID"
+        - name: "match_score"
+          type: "float"
+          required: true
+          description: "Match score"
+        - name: "matching_skills"
+          type: "json"
+          required: false
+          description: "Matching skills as JSON array"
+        - name: "notes"
+          type: "string"
+          required: false
+          description: "Additional notes"
+      tags: ["matches", "create", "insert"]
+      sql_file: "matches.sql"
+      
+    delete_matches_by_job_request:
+      description: "Delete all matches for a job request"
+      category: "matches"
+      operation: "delete"
+      parameters:
+        - name: "job_request_id"
+          type: "int"
+          required: true
+          description: "Job request ID"
+      tags: ["matches", "delete", "cleanup"]
+      sql_file: "matches.sql"
+      
+    get_employee_skills_for_match:
+      description: "Get skills for match display"
+      category: "matches"
+      operation: "select"
+      parameters:
+        - name: "employee_id"
+          type: "int"
+          required: true
+          description: "Employee ID"
+      tags: ["matches", "employees", "skills"]
+      sql_file: "matches.sql"
+
+# Query categories for organization
+categories:
+  employees:
+    description: "Employee-related queries"
+    color: "#3498db"
+    
+  job_requests:
+    description: "Job request-related queries"
+    color: "#e74c3c"
+    
+  skills:
+    description: "Skill-related queries"
+    color: "#2ecc71"
+    
+  matches:
+    description: "Match-related queries"
+    color: "#f39c12"
+
+# Global settings
+settings:
+  default_sql_directory: "."
+  enable_query_validation: true
+  enable_parameter_validation: true
+  cache_queries: true

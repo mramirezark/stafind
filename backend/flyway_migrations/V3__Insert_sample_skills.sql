@@ -1,0 +1,22 @@
+-- Insert some sample skills
+INSERT INTO skills (name, category) VALUES
+('JavaScript', 'Programming Language'),
+('Python', 'Programming Language'),
+('Go', 'Programming Language'),
+('React', 'Frontend Framework'),
+('Node.js', 'Backend Framework'),
+('PostgreSQL', 'Database'),
+('Docker', 'DevOps'),
+('AWS', 'Cloud Platform'),
+('Kubernetes', 'DevOps'),
+('GraphQL', 'API'),
+('TypeScript', 'Programming Language'),
+('Java', 'Programming Language'),
+('Spring Boot', 'Backend Framework'),
+('Vue.js', 'Frontend Framework'),
+('Angular', 'Frontend Framework'),
+('MongoDB', 'Database'),
+('Redis', 'Database'),
+('Git', 'Version Control'),
+('CI/CD', 'DevOps'),
+('Microservices', 'Architecture');
