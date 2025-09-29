@@ -16,19 +16,23 @@ import {
   Dashboard as DashboardIcon,
   PersonAdd as PersonAddIcon,
   Work as WorkIcon,
+  SmartToy as AIAgentIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material'
 import { 
   Dashboard, 
-  JobRequestForm, 
   EmployeeManagement, 
   Navigation, 
-  AuthWrapper 
+  AuthWrapper,
+  AIAgentManagement,
+  SkillExtractionTool,
+  AdminDashboard
 } from '@/components'
 
 const actions = [
   { icon: <DashboardIcon />, name: 'Dashboard', key: 'dashboard' },
-  { icon: <WorkIcon />, name: 'Job Request', key: 'job-request' },
   { icon: <PersonAddIcon />, name: 'Add Employee', key: 'employee' },
+  { icon: <AIAgentIcon />, name: 'AI Agent', key: 'ai-agent' },
 ]
 
 function MainApp() {
@@ -42,10 +46,12 @@ function MainApp() {
     switch (activeView) {
       case 'dashboard':
         return <Dashboard />
-      case 'job-request':
-        return <JobRequestForm />
       case 'employee':
         return <EmployeeManagement />
+      case 'ai-agent':
+        return <AIAgentManagement />
+      case 'admin':
+        return <AdminDashboard />
       default:
         return <Dashboard />
     }
@@ -64,13 +70,15 @@ function MainApp() {
             <Paper elevation={2} sx={{ p: 3 }}>
               <Typography variant="h4" component="h1" gutterBottom>
                 {activeView === 'dashboard' && 'Dashboard'}
-                {activeView === 'job-request' && 'Create Job Request'}
                 {activeView === 'employee' && 'Employee Management'}
+                {activeView === 'ai-agent' && 'AI Agent Management'}
+                {activeView === 'admin' && 'Admin Panel'}
               </Typography>
               <Typography variant="body1" color="text.secondary">
                 {activeView === 'dashboard' && 'Overview of your engineering team and recent activity'}
-                {activeView === 'job-request' && 'Submit a new job request with skill requirements'}
                 {activeView === 'employee' && 'Add and manage employee profiles with integrated search and filtering'}
+                {activeView === 'ai-agent' && 'Monitor AI agent requests and manage automated employee matching'}
+                {activeView === 'admin' && 'Manage users, roles, and API keys for system administration'}
               </Typography>
             </Paper>
           </Grid>

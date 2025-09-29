@@ -20,6 +20,7 @@ export interface Employee {
   level: string
   location: string
   bio: string
+  current_project: string | null
   skills: EmployeeSkill[]
   created_at: string
   updated_at: string
@@ -40,39 +41,10 @@ export interface EmployeeFormData {
   level: string
   location: string
   bio: string
+  current_project: string | null
   skills: string[]
 }
 
-/**
- * Job Request-related types
- */
-export interface JobRequest {
-  id: number
-  title: string
-  description: string
-  department: string
-  required_skills: string[]
-  preferred_skills: string[]
-  experience_level: string
-  location: string
-  priority: string
-  status: string
-  created_by: string
-  created_at: string
-  updated_at: string
-}
-
-export interface JobRequestFormData {
-  title: string
-  description: string
-  department: string
-  required_skills: string[]
-  preferred_skills: string[]
-  experience_level: string
-  location: string
-  priority: string
-  created_by: string
-}
 
 /**
  * Skill-related types
@@ -84,11 +56,10 @@ export interface Skill {
 }
 
 /**
- * Match-related types
+ * Match-related types (for AI agent)
  */
 export interface Match {
   id: number
-  job_request_id: number
   employee_id: number
   match_score: number
   matching_skills: string[]
@@ -140,6 +111,47 @@ export interface Role {
   id: number
   name: string
   description: string
+  created_at: string
+  updated_at: string
+}
+
+export interface APIKey {
+  id: number
+  service_name: string
+  description: string
+  key_hash: string
+  key_preview: string
+  is_active: boolean
+  expires_at?: string
+  last_used_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateAPIKeyRequest {
+  service_name: string
+  description: string
+  expires_at?: string
+}
+
+export interface UpdateAPIKeyRequest {
+  service_name?: string
+  description?: string
+  is_active?: boolean
+  expires_at?: string
+}
+
+export interface CreateUserRequest extends RegisterData {
+  role_id?: number
+}
+
+export interface UpdateUserRequest {
+  username?: string
+  email?: string
+  first_name?: string
+  last_name?: string
+  role_id?: number
+  is_active?: boolean
 }
 
 export interface RegisterData {
@@ -230,9 +242,50 @@ export interface TabPanelProps {
 
 export interface DashboardStats {
   totalEmployees: number
-  totalJobRequests: number
-  activeMatches: number
-  recentRequests: number
+  totalRequests: number
+  completedRequests: number
+  pendingRequests: number
+}
+
+export interface TopSuggestedEmployee {
+  employee_id: number
+  employee_name: string
+  employee_email: string
+  department: string
+  level: string
+  location: string
+  current_project: string | null
+  match_count: number
+  avg_match_score: number
+}
+
+export interface SkillDemandStats {
+  skill_name: string
+  count: number
+  category: string
+}
+
+export interface AIAgentRequest {
+  id: number
+  teams_message_id: string
+  channel_id: string
+  user_id: string
+  user_name: string
+  message_text: string
+  attachment_url?: string
+  extracted_text?: string
+  extracted_skills?: string[]
+  status: string
+  error?: string
+  created_at: string
+  processed_at?: string
+}
+
+export interface DashboardMetrics {
+  stats: DashboardStats
+  most_requested_skills: SkillDemandStats[]
+  top_suggested_employees: TopSuggestedEmployee[]
+  recent_requests: AIAgentRequest[]
 }
 
 // ============================================================================
@@ -289,7 +342,7 @@ export type LoadingState = 'idle' | 'loading' | 'success' | 'error'
 
 export type FormMode = 'create' | 'edit' | 'view'
 
-export type ViewType = 'dashboard' | 'job-request' | 'employee'
+export type ViewType = 'dashboard' | 'employee' | 'ai-agent' | 'admin'
 
 // ============================================================================
 // CONSTANTS
@@ -328,9 +381,6 @@ export const isEmployee = (obj: any): obj is Employee => {
   return obj && typeof obj.id === 'number' && typeof obj.name === 'string'
 }
 
-export const isJobRequest = (obj: any): obj is JobRequest => {
-  return obj && typeof obj.id === 'number' && typeof obj.title === 'string'
-}
 
 export const isSkill = (obj: any): obj is Skill => {
   return obj && typeof obj.id === 'number' && typeof obj.name === 'string'
@@ -343,7 +393,6 @@ export const isSkill = (obj: any): obj is Skill => {
 // Re-export commonly used types for easier imports
 export type {
   Employee as EmployeeType,
-  JobRequest as JobRequestType,
   Skill as SkillType,
   User as UserType,
   Match as MatchType,

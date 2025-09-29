@@ -7,9 +7,10 @@
 
 // Feature exports
 export * from './features/employees'
-export * from './features/job-requests'
 export * from './features/search'
 export * from './features/dashboard'
+export * from './features/ai-agent'
+export * from './features/admin'
 
 // Shared component exports
 export * from './shared/layout'

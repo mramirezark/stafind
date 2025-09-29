@@ -24,7 +24,8 @@ import {
 import {
   Dashboard as DashboardIcon,
   PersonAdd as PersonAddIcon,
-  Work as WorkIcon,
+  SmartToy as AIAgentIcon,
+  AdminPanelSettings as AdminIcon,
   Menu as MenuIcon,
   Close as CloseIcon,
   AccountCircle as AccountIcon,
@@ -36,8 +37,9 @@ import { NavigationProps } from '@/types'
 
 const navigationItems = [
   { key: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-  { key: 'job-request', label: 'Job Request', icon: <WorkIcon /> },
   { key: 'employee', label: 'Employees', icon: <PersonAddIcon /> },
+  { key: 'ai-agent', label: 'AI Agent', icon: <AIAgentIcon /> },
+  { key: 'admin', label: 'Admin', icon: <AdminIcon />, adminOnly: true },
 ]
 
 export function Navigation({ activeView, onViewChange }: NavigationProps) {
@@ -45,7 +47,12 @@ export function Navigation({ activeView, onViewChange }: NavigationProps) {
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
+
+  // Filter navigation items based on user permissions
+  const filteredNavigationItems = navigationItems.filter(item => 
+    !item.adminOnly || isAdmin()
+  )
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -102,7 +109,7 @@ export function Navigation({ activeView, onViewChange }: NavigationProps) {
         )}
       </Box>
       <List>
-        {navigationItems.map((item) => (
+        {filteredNavigationItems.map((item) => (
           <ListItem key={item.key} disablePadding>
             <ListItemButton
               selected={activeView === item.key}
@@ -144,11 +151,11 @@ export function Navigation({ activeView, onViewChange }: NavigationProps) {
             </IconButton>
           )}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            StaffFind
+            Staff Manager
           </Typography>
           {!isMobile && (
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              {navigationItems.map((item) => (
+              {filteredNavigationItems.map((item) => (
                 <Button
                   key={item.key}
                   color="inherit"

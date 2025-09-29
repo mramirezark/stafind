@@ -8,13 +8,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { 
   employeeService, 
-  jobRequestService, 
   authService, 
   skillService, 
   dashboardService, 
   searchService 
 } from '@/services/api'
-import { Employee, JobRequest, Skill, User, SearchCriteria, DashboardStats } from '@/types'
+import { aiAgentService, AIAgentRequest, AIAgentResponse, SkillExtractionResponse, CreateAIAgentRequest } from '@/services/ai/aiAgentService'
+import { Employee, Skill, User, SearchCriteria, DashboardStats, DashboardMetrics, TopSuggestedEmployee, SkillDemandStats } from '@/types'
 
 // ============================================================================
 // GENERIC API HOOK
@@ -27,7 +27,7 @@ interface UseApiState<T> {
   refetch: () => Promise<void>
 }
 
-function useApi<T>(
+export function useApi<T>(
   apiCall: () => Promise<T>,
   dependencies: any[] = []
 ): UseApiState<T> {
@@ -147,42 +147,6 @@ export function useDeleteEmployee() {
   }
 }
 
-// ============================================================================
-// JOB REQUEST HOOKS
-// ============================================================================
-
-export function useJobRequests() {
-  return useApi(() => jobRequestService.getJobRequests())
-}
-
-export function useJobRequest(id: number) {
-  return useApi(() => jobRequestService.getJobRequest(id), [id])
-}
-
-export function useCreateJobRequest() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const createJobRequest = useCallback(async (jobRequestData: Partial<JobRequest>) => {
-    try {
-      setLoading(true)
-      setError(null)
-      const result = await jobRequestService.createJobRequest(jobRequestData)
-      return result
-    } catch (err: any) {
-      setError(err.message)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  return {
-    createJobRequest,
-    loading,
-    error
-  }
-}
 
 // ============================================================================
 // SKILL HOOKS
@@ -261,6 +225,18 @@ export function useDashboardStats() {
   return useApi(() => dashboardService.getDashboardStats())
 }
 
+export function useDashboardMetrics() {
+  return useApi(() => dashboardService.getDashboardMetrics())
+}
+
+export function useTopSuggestedEmployees(limit: number = 5) {
+  return useApi(() => dashboardService.getTopSuggestedEmployees(limit), [limit])
+}
+
+export function useSkillDemandStats() {
+  return useApi(() => dashboardService.getSkillDemandStats())
+}
+
 // ============================================================================
 // AUTH HOOKS
 // ============================================================================
@@ -295,6 +271,93 @@ export function useUpdateProfile() {
 }
 
 // ============================================================================
+// AI AGENT HOOKS
+// ============================================================================
+
+export function useAIAgentRequests(limit: number = 50, offset: number = 0) {
+  return useApi(() => aiAgentService.getRequests(limit, offset), [limit, offset])
+}
+
+export function useAIAgentRequest(id: number) {
+  return useApi(() => aiAgentService.getRequest(id), [id])
+}
+
+export function useProcessAIAgentRequest() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const processRequest = useCallback(async (id: number) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await aiAgentService.processRequest(id)
+      return result
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return {
+    processRequest,
+    loading,
+    error
+  }
+}
+
+export function useCreateAndProcessAIAgentRequest() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const processNewRequest = useCallback(async (data: CreateAIAgentRequest) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await aiAgentService.processNewRequest(data)
+      return result
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return {
+    processNewRequest,
+    loading,
+    error
+  }
+}
+
+export function useExtractSkills() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const extractSkills = useCallback(async (text: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await aiAgentService.extractSkills(text)
+      return result
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return {
+    extractSkills,
+    loading,
+    error
+  }
+}
+
+// ============================================================================
 // UTILITY HOOKS
 // ============================================================================
 
@@ -302,11 +365,11 @@ export function useApiCache() {
   const clearCache = useCallback((pattern?: string) => {
     // Clear cache for all services
     employeeService.clearCache(pattern)
-    jobRequestService.clearCache(pattern)
     authService.clearCache(pattern)
     skillService.clearCache(pattern)
     dashboardService.clearCache(pattern)
     searchService.clearCache(pattern)
+    aiAgentService.clearCache(pattern)
   }, [])
 
   return {

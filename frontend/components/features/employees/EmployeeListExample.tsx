@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useEmployees } from '@/hooks/useEmployees'
 import { useAuth } from '@/hooks/useAuth'
-import { EmployeeCard, EmployeeForm } from './'
-import { Button } from '@/components/ui/Button'
+import { EmployeeCard, EmployeeFormDialog } from './'
+import { Button } from '@mui/material'
 
 /**
  * Example of a modularized EmployeeList component
@@ -93,12 +93,13 @@ export const EmployeeListExample = () => {
             employee={employee}
             onEdit={canManageEmployees ? handleEditEmployee : undefined}
             onDelete={canManageEmployees ? handleDeleteEmployee : undefined}
+            viewMode="grid"
           />
         ))}
       </div>
 
       {formOpen && (
-        <EmployeeForm
+        <EmployeeFormDialog
           open={formOpen}
           onClose={() => {
             setFormOpen(false)
@@ -106,6 +107,10 @@ export const EmployeeListExample = () => {
           }}
           employee={editingEmployee}
           onSubmit={editingEmployee ? handleUpdateEmployee : handleCreateEmployee}
+          skills={[]}
+          skillsLoading={false}
+          loading={false}
+          error={null}
         />
       )}
     </div>

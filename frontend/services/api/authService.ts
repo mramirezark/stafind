@@ -23,7 +23,7 @@ export class AuthService extends BaseApiService {
     const result = await this.request('POST', '/api/v1/auth/login', { username, password }, false)
     // Clear all cache on login
     this.clearCache()
-    return result
+    return result as { user: User; token: string }
   }
 
   /**
@@ -33,7 +33,7 @@ export class AuthService extends BaseApiService {
     const result = await this.request('POST', '/api/v1/auth/register', userData, false)
     // Clear all cache on registration
     this.clearCache()
-    return result
+    return result as { user: User; token: string }
   }
 
   /**
@@ -69,7 +69,7 @@ export class AuthService extends BaseApiService {
   async updateProfile(userData: Partial<User>): Promise<User> {
     const result = await this.request('PUT', '/api/v1/auth/profile', userData, false)
     this.clearDomainCache()
-    return result
+    return result as User
   }
 
   /**

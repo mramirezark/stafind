@@ -11,7 +11,7 @@ import {
   CircularProgress,
   Grid,
 } from '@mui/material'
-import { Add as AddIcon } from '@mui/icons-material'
+import { Add as AddIcon, CloudUpload as UploadIcon } from '@mui/icons-material'
 import { useEmployees, useSkills, useCreateEmployee, useUpdateEmployee, useDeleteEmployee } from '@/hooks/useApi'
 import { useAuth } from '@/hooks/useAuth'
 import { SearchFilters, EmployeeFormData } from './interfaces'
@@ -21,6 +21,7 @@ import { EmployeeFilters } from './EmployeeFilters'
 import { ViewControls } from './ViewControls'
 import { EmployeeList } from './EmployeeList'
 import { EmployeeFormDialog } from './EmployeeFormDialog'
+import { ResumeUpload } from './ResumeUpload'
 
 export function EmployeeManagement() {
   // Hooks
@@ -40,6 +41,7 @@ export function EmployeeManagement() {
   })
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('grid')
   const [formOpen, setFormOpen] = useState(false)
+  const [resumeUploadOpen, setResumeUploadOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [formData, setFormData] = useState<EmployeeFormData>({
     name: '',
@@ -106,6 +108,37 @@ export function EmployeeManagement() {
     })
     setFormError(null)
     setFormOpen(true)
+  }
+
+  const handleBulkImport = async (employees: any[]) => {
+    try {
+      // Convert parsed data to employee format
+      const employeeData = employees.map(emp => ({
+        name: emp.name,
+        email: emp.email,
+        department: 'Engineering', // Default department
+        level: emp.experience || 'Mid-level',
+        location: emp.location || '',
+        bio: emp.bio || '',
+        skills: emp.skills.map((skill: string) => ({
+          name: skill,
+          category: 'Technical',
+          proficiency_level: 3,
+          years_experience: 1,
+        }))
+      }))
+
+      // Create employees in bulk
+      for (const emp of employeeData) {
+        await createEmployee(emp)
+      }
+
+      // Refresh the employee list
+      refetch()
+    } catch (error) {
+      console.error('Bulk import failed:', error)
+      throw error
+    }
   }
 
   const handleEditEmployee = (employee: Employee) => {
@@ -215,14 +248,24 @@ export function EmployeeManagement() {
           </Typography>
         </Box>
         {canManageEmployees && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddEmployee}
-            size="large"
-          >
-            Add Employee
-          </Button>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={() => setResumeUploadOpen(true)}
+              size="large"
+            >
+              Bulk Import
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddEmployee}
+              size="large"
+            >
+              Add Employee
+            </Button>
+          </Box>
         )}
       </Box>
 
@@ -281,6 +324,13 @@ export function EmployeeManagement() {
         skillsLoading={skillsLoading}
         loading={formLoading}
         error={formError}
+      />
+
+      {/* Resume Upload Dialog */}
+      <ResumeUpload
+        open={resumeUploadOpen}
+        onClose={() => setResumeUploadOpen(false)}
+        onBulkImport={handleBulkImport}
       />
     </Box>
   )

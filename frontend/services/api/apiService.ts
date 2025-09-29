@@ -8,7 +8,6 @@
 import { api } from '@/lib/api'
 import { 
   Employee, 
-  JobRequest, 
   Skill, 
   User, 
   RegisterData, 
@@ -100,11 +99,13 @@ class ApiService {
    */
   public clearCache(pattern?: string): void {
     if (pattern) {
-      for (const key of this.cache.keys()) {
+      const keysToDelete: string[] = []
+      this.cache.forEach((_, key) => {
         if (key.includes(pattern)) {
-          this.cache.delete(key)
+          keysToDelete.push(key)
         }
-      }
+      })
+      keysToDelete.forEach(key => this.cache.delete(key))
     } else {
       this.cache.clear()
     }
@@ -134,7 +135,7 @@ class ApiService {
   async updateProfile(userData: Partial<User>): Promise<User> {
     const result = await this.request('PUT', '/api/v1/auth/profile', userData, false)
     this.clearCache('auth')
-    return result
+    return result as User
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
@@ -159,13 +160,13 @@ class ApiService {
   async createEmployee(employeeData: Partial<Employee>): Promise<Employee> {
     const result = await this.request('POST', '/api/v1/employees', employeeData, false)
     this.clearCache('employees')
-    return result
+    return result as Employee
   }
 
   async updateEmployee(id: number, employeeData: Partial<Employee>): Promise<Employee> {
     const result = await this.request('PUT', `/api/v1/employees/${id}`, employeeData, false)
     this.clearCache('employees')
-    return result
+    return result as Employee
   }
 
   async deleteEmployee(id: number): Promise<void> {
@@ -173,38 +174,7 @@ class ApiService {
     this.clearCache('employees')
   }
 
-  // ============================================================================
-  // JOB REQUEST METHODS
-  // ============================================================================
 
-  async getJobRequests(): Promise<JobRequest[]> {
-    return this.request('GET', '/api/v1/job-requests')
-  }
-
-  async getJobRequest(id: number): Promise<JobRequest> {
-    return this.request('GET', `/api/v1/job-requests/${id}`)
-  }
-
-  async createJobRequest(jobRequestData: Partial<JobRequest>): Promise<JobRequest> {
-    const result = await this.request('POST', '/api/v1/job-requests', jobRequestData, false)
-    this.clearCache('job-requests')
-    return result
-  }
-
-  async updateJobRequest(id: number, jobRequestData: Partial<JobRequest>): Promise<JobRequest> {
-    const result = await this.request('PUT', `/api/v1/job-requests/${id}`, jobRequestData, false)
-    this.clearCache('job-requests')
-    return result
-  }
-
-  async deleteJobRequest(id: number): Promise<void> {
-    await this.request('DELETE', `/api/v1/job-requests/${id}`, undefined, false)
-    this.clearCache('job-requests')
-  }
-
-  async getJobRequestMatches(id: number): Promise<any[]> {
-    return this.request('GET', `/api/v1/job-requests/${id}/matches`)
-  }
 
   // ============================================================================
   // SKILL METHODS
@@ -217,13 +187,13 @@ class ApiService {
   async createSkill(skillData: Partial<Skill>): Promise<Skill> {
     const result = await this.request('POST', '/api/v1/skills', skillData, false)
     this.clearCache('skills')
-    return result
+    return result as Skill
   }
 
   async updateSkill(id: number, skillData: Partial<Skill>): Promise<Skill> {
     const result = await this.request('PUT', `/api/v1/skills/${id}`, skillData, false)
     this.clearCache('skills')
-    return result
+    return result as Skill
   }
 
   async deleteSkill(id: number): Promise<void> {
@@ -249,19 +219,16 @@ class ApiService {
 
   async getDashboardData(): Promise<{
     stats: DashboardStats
-    recentRequests: JobRequest[]
     employees: Employee[]
   }> {
     // Fetch all dashboard data in parallel
-    const [stats, recentRequests, employees] = await Promise.all([
+    const [stats, employees] = await Promise.all([
       this.getDashboardStats(),
-      this.getJobRequests(),
       this.getEmployees()
     ])
 
     return {
       stats,
-      recentRequests: recentRequests.slice(0, 5), // Get only recent 5
       employees
     }
   }
@@ -286,7 +253,7 @@ class ApiService {
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
     const result = await this.request('PUT', `/api/v1/admin/users/${id}`, userData, false)
     this.clearCache('users')
-    return result
+    return result as User
   }
 
   async deleteUser(id: number): Promise<void> {

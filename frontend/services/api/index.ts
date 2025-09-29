@@ -32,8 +32,6 @@ export { BaseApiService } from './baseService'
 // Employee Service
 export { EmployeeService, employeeService } from './employeeService'
 
-// Job Request Service
-export { JobRequestService, jobRequestService } from './jobRequestService'
 
 // Authentication Service
 export { AuthService, authService } from './authService'
@@ -46,6 +44,15 @@ export { DashboardService, dashboardService } from './dashboardService'
 
 // Search Service
 export { SearchService, searchService } from './searchService'
+
+// API Key Service
+export { APIKeyService, apiKeyService } from './apiKeyService'
+
+// User Management Service
+export { UserManagementService, userManagementService } from './userManagementService'
+
+// Admin Endpoints
+export { ADMIN_ENDPOINTS } from './adminEndpoints'
 
 // ============================================================================
 // LEGACY API SERVICE (for backward compatibility)
@@ -75,9 +82,6 @@ export const services = {
   get employee() {
     return require('./employeeService').employeeService
   },
-  get jobRequest() {
-    return require('./jobRequestService').jobRequestService
-  },
   get auth() {
     return require('./authService').authService
   },
@@ -89,6 +93,12 @@ export const services = {
   },
   get search() {
     return require('./searchService').searchService
+  },
+  get apiKey() {
+    return require('./apiKeyService').apiKeyService
+  },
+  get userManagement() {
+    return require('./userManagementService').userManagementService
   },
 } as const
 

@@ -21,5 +21,34 @@ export * from './services/employees/employeeService'
 // Utility exports
 export * from './utils/helpers'
 
-// Type exports
-export * from './types'
+// Type exports (excluding EmployeeCardProps to avoid conflict)
+export type {
+  Employee,
+  Skill,
+  User,
+  SearchCriteria,
+  DashboardStats,
+  Match,
+  AuthContextType,
+  NavigationProps,
+  EmployeeFormProps,
+  AuthCardProps,
+  LoginFormProps,
+  RegisterFormProps,
+  AuthWrapperProps,
+  TabPanelProps,
+  SelectOption,
+  ExperienceLevel,
+  Priority,
+  ApiResponse,
+  PaginatedResponse,
+  ApiError,
+  LoadingState,
+  FormMode,
+  ViewType,
+  Department,
+  EmployeeType,
+  SkillType,
+  UserType,
+  MatchType,
+} from './types'

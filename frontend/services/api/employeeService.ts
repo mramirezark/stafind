@@ -36,7 +36,7 @@ export class EmployeeService extends BaseApiService {
   async createEmployee(employeeData: Partial<Employee>): Promise<Employee> {
     const result = await this.request('POST', '/api/v1/employees', employeeData, false)
     this.clearDomainCache()
-    return result
+    return result as Employee
   }
 
   /**
@@ -45,7 +45,7 @@ export class EmployeeService extends BaseApiService {
   async updateEmployee(id: number, employeeData: Partial<Employee>): Promise<Employee> {
     const result = await this.request('PUT', `/api/v1/employees/${id}`, employeeData, false)
     this.clearDomainCache()
-    return result
+    return result as Employee
   }
 
   /**

@@ -28,9 +28,9 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   // Show login/register forms if not authenticated
   if (!isAuthenticated) {
     return isLoginMode ? (
-      <LoginForm onToggleMode={() => setIsLoginMode(false)} />
+      <LoginForm />
     ) : (
-      <RegisterForm onToggleMode={() => setIsLoginMode(true)} />
+      <RegisterForm />
     )
   }
 

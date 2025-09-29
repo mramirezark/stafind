@@ -37,22 +37,15 @@ export const API_ENDPOINTS = {
     DELETE: (id: number) => `/api/v1/skills/${id}`,
   },
 
-  // User management endpoints (admin only)
-  USERS: {
-    LIST: '/api/v1/users',
-    CREATE: '/api/v1/users',
-    GET: (id: number) => `/api/v1/users/${id}`,
-    UPDATE: (id: number) => `/api/v1/users/${id}`,
-    DELETE: (id: number) => `/api/v1/users/${id}`,
-  },
-
-  // Role management endpoints (admin only)
+  // Role management endpoints (public/protected)
   ROLES: {
     LIST: '/api/v1/roles',
-    CREATE: '/api/v1/roles',
     GET: (id: number) => `/api/v1/roles/${id}`,
-    UPDATE: (id: number) => `/api/v1/roles/${id}`,
-    DELETE: (id: number) => `/api/v1/roles/${id}`,
+  },
+
+  // API Key validation (public)
+  API_KEYS: {
+    VALIDATE: '/api-keys/validate',
   },
 
   // Health check

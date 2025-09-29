@@ -27,8 +27,6 @@ export { BaseApiService } from './baseService'
 // Employee Service
 export { EmployeeService, employeeService } from './employeeService'
 
-// Job Request Service
-export { JobRequestService, jobRequestService } from './jobRequestService'
 
 // Authentication Service
 export { AuthService, authService } from './authService'
@@ -52,11 +50,10 @@ export { ApiService, apiService } from './apiService'
 // TYPES
 // ============================================================================
 
-export type ServiceName = 'employee' | 'jobRequest' | 'auth' | 'skill' | 'dashboard' | 'search'
+export type ServiceName = 'employee' | 'auth' | 'skill' | 'dashboard' | 'search'
 
 export type ServiceMap = {
   employee: typeof import('./employeeService').employeeService
-  jobRequest: typeof import('./jobRequestService').jobRequestService
   auth: typeof import('./authService').authService
   skill: typeof import('./skillService').skillService
   dashboard: typeof import('./dashboardService').dashboardService
@@ -88,15 +85,13 @@ const serviceCache = new Map<ServiceName, Promise<any>>()
  */
 export async function getService<T extends ServiceName>(name: T): Promise<ServiceMap[T]> {
   if (serviceCache.has(name)) {
-    return serviceCache.get(name)!
+    return serviceCache.get(name)! as Promise<ServiceMap[T]>
   }
 
   const servicePromise = (async () => {
     switch (name) {
       case 'employee':
         return (await import('./employeeService')).employeeService
-      case 'jobRequest':
-        return (await import('./jobRequestService')).jobRequestService
       case 'auth':
         return (await import('./authService')).authService
       case 'skill':
@@ -108,7 +103,7 @@ export async function getService<T extends ServiceName>(name: T): Promise<Servic
       default:
         throw new Error(`Unknown service: ${name}`)
     }
-  })()
+  })() as Promise<ServiceMap[T]>
 
   serviceCache.set(name, servicePromise)
   return servicePromise
@@ -128,7 +123,7 @@ export async function getService<T extends ServiceName>(name: T): Promise<Servic
  * ```
  */
 export async function preloadServices(): Promise<void> {
-  const serviceNames: ServiceName[] = ['employee', 'jobRequest', 'auth', 'skill', 'dashboard', 'search']
+  const serviceNames: ServiceName[] = ['employee', 'auth', 'skill', 'dashboard', 'search']
   await Promise.all(serviceNames.map(name => getService(name)))
 }
 

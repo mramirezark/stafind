@@ -18,11 +18,6 @@ export type {
   EmployeeFormProps,
 } from './index'
 
-export type {
-  // Job Request domain
-  JobRequest,
-  JobRequestFormData,
-} from './index'
 
 export type {
   // Authentication domain

@@ -36,7 +36,7 @@ export class SkillService extends BaseApiService {
   async createSkill(skillData: Partial<Skill>): Promise<Skill> {
     const result = await this.request('POST', '/api/v1/skills', skillData, false)
     this.clearDomainCache()
-    return result
+    return result as Skill
   }
 
   /**
@@ -45,7 +45,7 @@ export class SkillService extends BaseApiService {
   async updateSkill(id: number, skillData: Partial<Skill>): Promise<Skill> {
     const result = await this.request('PUT', `/api/v1/skills/${id}`, skillData, false)
     this.clearDomainCache()
-    return result
+    return result as Skill
   }
 
   /**

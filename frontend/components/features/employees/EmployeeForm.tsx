@@ -111,6 +111,14 @@ export function EmployeeForm({
           onChange={handleInputChange('location')}
         />
       </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Current Project"
+          value={localFormData.current_project || ''}
+          onChange={handleInputChange('current_project')}
+        />
+      </Grid>
       <Grid item xs={12}>
         <TextField
           fullWidth

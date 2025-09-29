@@ -63,13 +63,6 @@ export const endpoints = {
     delete: (id: number) => api.delete(`/api/v1/employees/${id}`),
   },
   
-  // Job Requests
-  jobRequests: {
-    list: () => api.get('/api/v1/job-requests'),
-    get: (id: number) => api.get(`/api/v1/job-requests/${id}`),
-    create: (data: any) => api.post('/api/v1/job-requests', data),
-    getMatches: (id: number) => api.get(`/api/v1/job-requests/${id}/matches`),
-  },
   
   // Skills
   skills: {
@@ -86,6 +79,17 @@ export const endpoints = {
   roles: {
     list: () => api.get('/api/v1/roles'),
     get: (id: number) => api.get(`/api/v1/roles/${id}`),
+  },
+
+  // AI Agent
+  aiAgent: {
+    getRequests: (params?: { limit?: number; offset?: number }) => 
+      api.get('/api/v1/ai-agent/requests', { params }),
+    getRequest: (id: number) => api.get(`/api/v1/ai-agent/requests/${id}`),
+    getResponse: (id: number) => api.get(`/api/v1/ai-agent/responses/${id}`),
+    processRequest: (id: number) => api.post(`/api/v1/ai-agent/requests/${id}/process`),
+    process: (data: any) => api.post('/api/v1/ai-agent/process', data),
+    extractSkills: (data: any) => api.post('/api/v1/ai-agent/extract-skills', data),
   },
 
   // Admin endpoints

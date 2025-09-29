@@ -13,7 +13,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <MuiButton
         ref={ref}
-        variant={variant === 'primary' ? 'contained' : variant}
+        variant={variant === 'primary' ? 'contained' : variant === 'secondary' ? 'outlined' : variant}
         disabled={disabled || loading}
         {...props}
       >

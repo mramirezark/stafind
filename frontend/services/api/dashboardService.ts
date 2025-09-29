@@ -5,9 +5,8 @@
  */
 
 import { BaseApiService } from './baseService'
-import { DashboardStats, Employee, JobRequest } from '@/types'
+import { DashboardStats, Employee, DashboardMetrics, TopSuggestedEmployee, SkillDemandStats } from '@/types'
 import { employeeService } from './employeeService'
-import { jobRequestService } from './jobRequestService'
 
 export class DashboardService extends BaseApiService {
   protected getDomainName(): string {
@@ -19,10 +18,21 @@ export class DashboardService extends BaseApiService {
   // ============================================================================
 
   /**
-   * Get dashboard statistics
+   * Get dashboard statistics (extracted from metrics)
    */
   async getDashboardStats(): Promise<DashboardStats> {
-    return this.request('GET', '/api/v1/dashboard/stats')
+    try {
+      const metrics = await this.getDashboardMetrics()
+      return metrics.stats
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error)
+      return {
+        totalEmployees: 0,
+        totalRequests: 0,
+        completedRequests: 0,
+        pendingRequests: 0
+      }
+    }
   }
 
   /**
@@ -30,20 +40,121 @@ export class DashboardService extends BaseApiService {
    */
   async getDashboardData(): Promise<{
     stats: DashboardStats
-    recentRequests: JobRequest[]
     employees: Employee[]
   }> {
     // Fetch all dashboard data in parallel
-    const [stats, recentRequests, employees] = await Promise.all([
+    const [stats, employees] = await Promise.all([
       this.getDashboardStats(),
-      this.getRecentJobRequests(),
       this.getRecentEmployees()
     ])
 
     return {
       stats,
-      recentRequests,
       employees
+    }
+  }
+
+  /**
+   * Get comprehensive dashboard metrics
+   */
+  async getDashboardMetrics(): Promise<DashboardMetrics> {
+    try {
+      const response = await this.request('GET', '/api/v1/dashboard/metrics')
+      console.log('Dashboard metrics response:', response)
+      
+      // Handle different response structures
+      if (response && typeof response === 'object') {
+        let metricsData = response
+        
+        // If response has a data property
+        if ('data' in response && response.data) {
+          metricsData = response.data
+        }
+        
+        // Map snake_case to camelCase if needed
+        if (metricsData && typeof metricsData === 'object') {
+          console.log('Raw metrics data:', metricsData)
+          console.log('stats field:', (metricsData as any).stats)
+          
+          // Handle stats field mapping
+          let statsData = (metricsData as any).stats || metricsData
+          console.log('Stats data:', statsData)
+          console.log('total_employees in stats:', (statsData as any).total_employees)
+          
+          const mappedMetrics: DashboardMetrics = {
+            stats: {
+              totalEmployees: (statsData as any).total_employees || (statsData as any).totalEmployees || 0,
+              totalRequests: (statsData as any).total_requests || (statsData as any).totalRequests || 0,
+              completedRequests: (statsData as any).completed_requests || (statsData as any).completedRequests || 0,
+              pendingRequests: (statsData as any).pending_requests || (statsData as any).pendingRequests || 0
+            },
+            most_requested_skills: (metricsData as any).most_requested_skills || (metricsData as any).mostRequestedSkills || [],
+            top_suggested_employees: (metricsData as any).top_suggested_employees || (metricsData as any).topSuggestedEmployees || [],
+            recent_requests: (metricsData as any).recent_requests || (metricsData as any).recentRequests || []
+          }
+          console.log('Mapped metrics:', mappedMetrics)
+          return mappedMetrics
+        }
+      }
+      
+      console.warn('Unexpected dashboard metrics response structure:', response)
+      return {
+        stats: {
+          totalEmployees: 0,
+          totalRequests: 0,
+          completedRequests: 0,
+          pendingRequests: 0
+        },
+        most_requested_skills: [],
+        top_suggested_employees: [],
+        recent_requests: []
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard metrics:', error)
+      // Return default metrics on error
+      return {
+        stats: {
+          totalEmployees: 0,
+          totalRequests: 0,
+          completedRequests: 0,
+          pendingRequests: 0
+        },
+        most_requested_skills: [],
+        top_suggested_employees: [],
+        recent_requests: []
+      }
+    }
+  }
+
+  /**
+   * Get top suggested employees
+   */
+  async getTopSuggestedEmployees(limit: number = 5): Promise<TopSuggestedEmployee[]> {
+    try {
+      const response = await this.request('GET', `/api/v1/dashboard/top-employees?limit=${limit}`)
+      console.log('Top suggested employees response:', response)
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        return response
+      }
+      
+      if (response && typeof response === 'object') {
+        // If response has a data property
+        if ('data' in response && Array.isArray(response.data)) {
+          return response.data
+        }
+        // If response has employees property
+        if ('employees' in response && Array.isArray(response.employees)) {
+          return response.employees
+        }
+      }
+      
+      console.warn('Unexpected top suggested employees response structure:', response)
+      return []
+    } catch (error) {
+      console.error('Failed to fetch top suggested employees:', error)
+      return []
     }
   }
 
@@ -51,18 +162,17 @@ export class DashboardService extends BaseApiService {
   // RECENT DATA OPERATIONS
   // ============================================================================
 
-  /**
-   * Get recent job requests
-   */
-  async getRecentJobRequests(limit: number = 5): Promise<JobRequest[]> {
-    return this.request('GET', `/api/v1/dashboard/recent-requests?limit=${limit}`)
-  }
 
   /**
    * Get recent employees
    */
   async getRecentEmployees(limit: number = 5): Promise<Employee[]> {
-    return this.request('GET', `/api/v1/dashboard/recent-employees?limit=${limit}`)
+    try {
+      return await this.request('GET', `/api/v1/dashboard/recent-employees?limit=${limit}`)
+    } catch (error) {
+      console.error('Failed to fetch recent employees:', error)
+      return []
+    }
   }
 
   /**
@@ -87,7 +197,12 @@ export class DashboardService extends BaseApiService {
    * Get skill demand statistics
    */
   async getSkillDemandStats(): Promise<any[]> {
-    return this.request('GET', '/api/v1/dashboard/skill-demand')
+    try {
+      return await this.request('GET', '/api/v1/dashboard/skill-demand')
+    } catch (error) {
+      console.error('Failed to fetch skill demand stats:', error)
+      return []
+    }
   }
 
   /**

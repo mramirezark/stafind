@@ -61,10 +61,10 @@ export function AuthCard({ onSuccess }: AuthCardProps) {
         <CardContent sx={{ p: 4 }}>
           <Box textAlign="center" mb={3}>
             <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
-              StaffFind
+              Staff Manager
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Welcome to StaffFind - Your Employee Management Platform
+              Welcome to Staff Manager - Your Employee Management Platform
             </Typography>
           </Box>
 

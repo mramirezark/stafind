@@ -20,6 +20,7 @@ import {
   Person as PersonIcon,
   Email as EmailIcon,
   LocationOn as LocationIcon,
+  Work as WorkIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material'
@@ -45,6 +46,7 @@ export function EmployeeTable({
               <TableCell>Department</TableCell>
               <TableCell>Level</TableCell>
               <TableCell>Location</TableCell>
+              <TableCell>Current Project</TableCell>
               <TableCell>Skills</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -91,6 +93,20 @@ export function EmployeeTable({
                       <LocationIcon fontSize="small" color="action" />
                       <Typography variant="body2">
                         {employee.location}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      -
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {employee.current_project ? (
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      <WorkIcon fontSize="small" color="action" />
+                      <Typography variant="body2">
+                        {employee.current_project}
                       </Typography>
                     </Box>
                   ) : (

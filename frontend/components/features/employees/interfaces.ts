@@ -11,6 +11,7 @@ export interface EmployeeFormData {
   level: string
   location: string
   bio: string
+  current_project: string | null
   skills: string[]
 }
 

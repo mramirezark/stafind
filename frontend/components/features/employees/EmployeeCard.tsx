@@ -14,6 +14,7 @@ import {
   Person as PersonIcon,
   Email as EmailIcon,
   LocationOn as LocationIcon,
+  Work as WorkIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material'
@@ -44,6 +45,14 @@ export function EmployeeCard({ employee, viewMode, onEdit, onDelete }: EmployeeC
                     <LocationIcon fontSize="small" color="action" />
                     <Typography variant="body2" color="text.secondary">
                       {employee.location}
+                    </Typography>
+                  </Box>
+                )}
+                {employee.current_project && (
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    <WorkIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {employee.current_project}
                     </Typography>
                   </Box>
                 )}
@@ -135,10 +144,19 @@ export function EmployeeCard({ employee, viewMode, onEdit, onDelete }: EmployeeC
         </Box>
 
         {employee.location && (
-          <Box display="flex" alignItems="center" gap={1} mb={2}>
+          <Box display="flex" alignItems="center" gap={1} mb={1}>
             <LocationIcon fontSize="small" color="action" />
             <Typography variant="body2" color="text.secondary">
               {employee.location}
+            </Typography>
+          </Box>
+        )}
+
+        {employee.current_project && (
+          <Box display="flex" alignItems="center" gap={1} mb={2}>
+            <WorkIcon fontSize="small" color="action" />
+            <Typography variant="body2" color="text.secondary">
+              {employee.current_project}
             </Typography>
           </Box>
         )}

@@ -7,7 +7,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'StaffFind - Employee Matching System',
+  title: 'Staff Manager - Employee Matching System',
   description: 'Find the perfect employees for your projects',
   keywords: ['employees', 'matching', 'skills', 'hiring', 'recruitment'],
   authors: [{ name: 'StaffFind Team' }],
