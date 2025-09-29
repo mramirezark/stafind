@@ -3,9 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"stafind-backend/internal/constants"
+	"stafind-backend/internal/logger"
 
 	"github.com/gabrielaraujosouza/goflyway"
 	_ "github.com/lib/pq"
@@ -65,7 +66,7 @@ func NewFlywayMigrator(config *FlywayConfig) (*FlywayMigrator, error) {
 
 // Migrate runs all pending migrations
 func (fm *FlywayMigrator) Migrate() error {
-	log.Println("Starting Flyway migrations...")
+	logger.Info("Starting Flyway migrations")
 
 	// Configure goflyway
 	conf := goflyway.GoFlywayConfig{
@@ -80,7 +81,7 @@ func (fm *FlywayMigrator) Migrate() error {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
-	log.Printf("Flyway migrations completed successfully. Total scripts executed: %d", totalScriptsExecuted)
+	logger.Info("Flyway migrations completed successfully", "total_scripts", totalScriptsExecuted)
 	return nil
 }
 
@@ -139,14 +140,14 @@ func (fm *FlywayMigrator) getPendingMigrations() []string {
 	// Read migration directory
 	files, err := filepath.Glob(filepath.Join(fm.location, "V*.sql"))
 	if err != nil {
-		log.Printf("Error reading migration directory: %v", err)
+		logger.Error("Error reading migration directory", "error", err)
 		return pending
 	}
 
 	// Get applied migrations to determine which are pending
 	info, err := fm.GetMigrationInfo()
 	if err != nil {
-		log.Printf("Error getting migration info: %v", err)
+		logger.Error("Error getting migration info", "error", err)
 		return pending
 	}
 
@@ -210,7 +211,7 @@ func (fm *FlywayMigrator) ValidateMigrations() error {
 		return fmt.Errorf("migration validation failed:\n%s", fmt.Sprintf("- %s\n", errors))
 	}
 
-	log.Printf("Migration validation passed. Found %d valid migration files.", len(files))
+	logger.Info("Migration validation passed", "valid_files", len(files))
 	return nil
 }
 
@@ -281,12 +282,12 @@ type AppliedMigration struct {
 // NewFlywayConfigFromEnv creates a FlywayConfig from environment variables
 func NewFlywayConfigFromEnv() *FlywayConfig {
 	return &FlywayConfig{
-		Host:     getEnv("DB_HOST", "localhost"),
-		Port:     getEnv("DB_PORT", "5432"),
-		User:     getEnv("DB_USER", "postgres"),
-		Password: getEnv("DB_PASSWORD", "password"),
-		Database: getEnv("DB_NAME", "stafind"),
-		SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		Location: getEnv("FLYWAY_LOCATIONS", "./flyway_migrations"),
+		Host:     getEnv(constants.EnvDBHost, constants.DefaultDBHost),
+		Port:     getEnv(constants.EnvDBPort, constants.DefaultDBPort),
+		User:     getEnv(constants.EnvDBUser, constants.DefaultDBUser),
+		Password: getEnv(constants.EnvDBPassword, constants.DefaultDBPassword),
+		Database: getEnv(constants.EnvDBName, constants.DefaultDBName),
+		SSLMode:  getEnv(constants.EnvDBSSLMode, constants.DefaultSSLMode),
+		Location: getEnv(constants.EnvFlywayLocations, constants.DefaultFlywayLocations),
 	}
 }

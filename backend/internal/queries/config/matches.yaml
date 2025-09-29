@@ -1,0 +1,88 @@
+# Employee Matching Queries
+
+queries:
+  # Match-related queries
+  matches:
+    get_matches_by_job_request:
+      description: "Get all matches for a specific job request"
+      category: "matches"
+      operation: "select"
+      parameters:
+        - name: "job_request_id"
+          type: "int"
+          required: true
+          description: "Job request ID"
+      tags: ["matches", "job_requests", "relationships"]
+      sql_file: "matches.sql"
+      
+    create_match:
+      description: "Create a new match record"
+      category: "matches"
+      operation: "insert"
+      parameters:
+        - name: "job_request_id"
+          type: "int"
+          required: true
+          description: "Job request ID"
+        - name: "engineer_id"
+          type: "int"
+          required: true
+          description: "Engineer ID"
+        - name: "match_score"
+          type: "float"
+          required: true
+          description: "Match score"
+        - name: "matching_skills"
+          type: "json"
+          required: false
+          description: "Matching skills as JSON array"
+        - name: "notes"
+          type: "string"
+          required: false
+          description: "Additional notes"
+      tags: ["matches", "create", "insert"]
+      sql_file: "matches.sql"
+      
+    delete_matches_by_job_request:
+      description: "Delete all matches for a job request"
+      category: "matches"
+      operation: "delete"
+      parameters:
+        - name: "job_request_id"
+          type: "int"
+          required: true
+          description: "Job request ID"
+      tags: ["matches", "delete", "cleanup"]
+      sql_file: "matches.sql"
+      
+    get_employee_skills_for_match:
+      description: "Get skills for match display"
+      category: "matches"
+      operation: "select"
+      parameters:
+        - name: "employee_id"
+          type: "int"
+          required: true
+          description: "Employee ID"
+      tags: ["matches", "employees", "skills"]
+      sql_file: "matches.sql"
+      
+    get_all_matches:
+      description: "Get all matches with employee information"
+      category: "matches"
+      operation: "select"
+      parameters: []
+      tags: ["matches", "list", "all"]
+      sql_file: "matches.sql"
+      
+    delete_match:
+      description: "Delete a match by ID"
+      category: "matches"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Match ID to delete"
+      tags: ["matches", "delete", "remove"]
+      sql_file: "matches.sql"

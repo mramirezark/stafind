@@ -32,7 +32,7 @@ func (r *employeeRepository) GetAll() ([]models.Employee, error) {
 		var employee models.Employee
 		err := rows.Scan(
 			&employee.ID, &employee.Name, &employee.Email, &employee.Department,
-			&employee.Level, &employee.Location, &employee.Bio,
+			&employee.Level, &employee.Location, &employee.Bio, &employee.CurrentProject,
 			&employee.CreatedAt, &employee.UpdatedAt,
 		)
 		if err != nil {
@@ -57,7 +57,7 @@ func (r *employeeRepository) GetByID(id int) (*models.Employee, error) {
 	var employee models.Employee
 	err := r.db.QueryRow(query, id).Scan(
 		&employee.ID, &employee.Name, &employee.Email, &employee.Department,
-		&employee.Level, &employee.Location, &employee.Bio,
+		&employee.Level, &employee.Location, &employee.Bio, &employee.CurrentProject,
 		&employee.CreatedAt, &employee.UpdatedAt,
 	)
 	if err != nil {
@@ -83,7 +83,13 @@ func (r *employeeRepository) Create(req *models.CreateEmployeeRequest) (*models.
 
 	query := r.MustGetQuery("create_employee")
 	var employee models.Employee
-	err = tx.QueryRow(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio).
+	// Convert string to pointer string for current_project
+	var currentProject *string
+	if req.CurrentProject != "" {
+		currentProject = &req.CurrentProject
+	}
+
+	err = tx.QueryRow(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject).
 		Scan(&employee.ID, &employee.CreatedAt, &employee.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -95,6 +101,7 @@ func (r *employeeRepository) Create(req *models.CreateEmployeeRequest) (*models.
 	employee.Level = req.Level
 	employee.Location = req.Location
 	employee.Bio = req.Bio
+	employee.CurrentProject = currentProject
 
 	// Add skills
 	for _, skillReq := range req.Skills {
@@ -126,7 +133,13 @@ func (r *employeeRepository) Update(id int, req *models.CreateEmployeeRequest) (
 	defer tx.Rollback()
 
 	query := r.MustGetQuery("update_employee")
-	_, err = tx.Exec(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, id)
+	// Convert string to pointer string for current_project
+	var currentProject *string
+	if req.CurrentProject != "" {
+		currentProject = &req.CurrentProject
+	}
+
+	_, err = tx.Exec(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject, id)
 	if err != nil {
 		return nil, err
 	}

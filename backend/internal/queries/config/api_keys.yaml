@@ -1,0 +1,144 @@
+# API Key Management Queries
+
+queries:
+  # API Key-related queries
+  api_keys:
+    create_api_key:
+      description: "Create a new API key"
+      category: "api_keys"
+      operation: "insert"
+      parameters:
+        - name: "key_hash"
+          type: "string"
+          required: true
+          description: "Hashed API key"
+        - name: "service_name"
+          type: "string"
+          required: true
+          description: "Service name for the API key"
+        - name: "description"
+          type: "string"
+          required: true
+          description: "Description of the API key"
+        - name: "is_active"
+          type: "boolean"
+          required: true
+          description: "Whether the API key is active"
+        - name: "created_at"
+          type: "timestamp"
+          required: true
+          description: "Creation timestamp"
+        - name: "expires_at"
+          type: "timestamp"
+          required: false
+          description: "Expiration timestamp"
+      tags: ["api_keys", "create", "insert"]
+      sql_file: "api_keys.sql"
+      
+    get_api_key_by_id:
+      description: "Retrieve an API key by ID"
+      category: "api_keys"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "API key ID"
+      tags: ["api_keys", "single", "by_id"]
+      sql_file: "api_keys.sql"
+      
+    get_api_key_by_hash:
+      description: "Retrieve an API key by its hash"
+      category: "api_keys"
+      operation: "select"
+      parameters:
+        - name: "key_hash"
+          type: "string"
+          required: true
+          description: "API key hash"
+      tags: ["api_keys", "single", "by_hash"]
+      sql_file: "api_keys.sql"
+      
+    get_all_api_keys:
+      description: "Retrieve all API keys with pagination"
+      category: "api_keys"
+      operation: "select"
+      parameters:
+        - name: "limit"
+          type: "int"
+          required: true
+          description: "Maximum number of results"
+        - name: "offset"
+          type: "int"
+          required: true
+          description: "Number of results to skip"
+      tags: ["api_keys", "list", "pagination"]
+      sql_file: "api_keys.sql"
+      
+    update_api_key:
+      description: "Update an existing API key"
+      category: "api_keys"
+      operation: "update"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "API key ID to update"
+        - name: "service_name"
+          type: "string"
+          required: true
+          description: "Service name for the API key"
+        - name: "description"
+          type: "string"
+          required: true
+          description: "Description of the API key"
+        - name: "is_active"
+          type: "boolean"
+          required: true
+          description: "Whether the API key is active"
+        - name: "expires_at"
+          type: "timestamp"
+          required: false
+          description: "Expiration timestamp"
+      tags: ["api_keys", "update", "modify"]
+      sql_file: "api_keys.sql"
+      
+    deactivate_api_key:
+      description: "Deactivate an API key"
+      category: "api_keys"
+      operation: "update"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "API key ID to deactivate"
+      tags: ["api_keys", "deactivate", "update"]
+      sql_file: "api_keys.sql"
+      
+    update_api_key_last_used:
+      description: "Update the last used timestamp for an API key"
+      category: "api_keys"
+      operation: "update"
+      parameters:
+        - name: "key_hash"
+          type: "string"
+          required: true
+          description: "API key hash"
+        - name: "last_used_at"
+          type: "timestamp"
+          required: true
+          description: "Last used timestamp"
+      tags: ["api_keys", "update", "usage"]
+      sql_file: "api_keys.sql"
+      
+    delete_api_key:
+      description: "Delete an API key"
+      category: "api_keys"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "API key ID to delete"
+      tags: ["api_keys", "delete", "remove"]
+      sql_file: "api_keys.sql"

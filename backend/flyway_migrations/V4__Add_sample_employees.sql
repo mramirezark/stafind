@@ -1,10 +1,10 @@
 -- Insert sample employees
-INSERT INTO employees (name, email, department, level, location, bio) VALUES
-('Alice Johnson', 'alice.johnson@company.com', 'Engineering', 'senior', 'San Francisco, CA', 'Senior full-stack engineer with expertise in React and Node.js'),
-('Bob Smith', 'bob.smith@company.com', 'Engineering', 'mid', 'New York, NY', 'Backend developer specializing in Go and PostgreSQL'),
-('Carol Davis', 'carol.davis@company.com', 'Engineering', 'senior', 'Seattle, WA', 'DevOps engineer with strong AWS and Kubernetes experience'),
-('David Wilson', 'david.wilson@company.com', 'Engineering', 'junior', 'Austin, TX', 'Frontend developer focused on React and TypeScript'),
-('Eva Brown', 'eva.brown@company.com', 'Data Science', 'senior', 'Boston, MA', 'Data scientist with Python and machine learning expertise');
+INSERT INTO employees (name, email, department, level, location, bio, current_project) VALUES
+('Alice Johnson', 'alice.johnson@company.com', 'Engineering', 'senior', 'San Francisco, CA', 'Senior full-stack engineer with expertise in React and Node.js', 'E-commerce Platform Redesign'),
+('Bob Smith', 'bob.smith@company.com', 'Engineering', 'mid', 'New York, NY', 'Backend developer specializing in Go and PostgreSQL', 'API Gateway Migration'),
+('Carol Davis', 'carol.davis@company.com', 'Engineering', 'senior', 'Seattle, WA', 'DevOps engineer with strong AWS and Kubernetes experience', 'Cloud Infrastructure Optimization'),
+('David Wilson', 'david.wilson@company.com', 'Engineering', 'junior', 'Austin, TX', 'Frontend developer focused on React and TypeScript', 'Mobile App Development'),
+('Eva Brown', 'eva.brown@company.com', 'Data Science', 'senior', 'Boston, MA', 'Data scientist with Python and machine learning expertise', 'Customer Analytics Dashboard');
 
 -- Add some employee skills
 INSERT INTO employee_skills (employee_id, skill_id, proficiency_level, years_experience) VALUES

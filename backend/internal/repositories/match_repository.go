@@ -4,20 +4,32 @@ import (
 	"database/sql"
 	"encoding/json"
 	"stafind-backend/internal/models"
-	"stafind-backend/internal/queries"
 )
 
 type matchRepository struct {
-	db *sql.DB
+	*BaseRepository
 }
 
 // NewMatchRepository creates a new match repository
-func NewMatchRepository(db *sql.DB) MatchRepository {
-	return &matchRepository{db: db}
+func NewMatchRepository(db *sql.DB) (MatchRepository, error) {
+	baseRepo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &matchRepository{BaseRepository: baseRepo}, nil
 }
 
-func (r *matchRepository) GetByJobRequestID(jobRequestID int) ([]models.Match, error) {
-	rows, err := r.db.Query(queries.GetMatchesByJobRequestID, jobRequestID)
+func (r *matchRepository) GetByEmployeeID(employeeID int) ([]models.Match, error) {
+	// For now, return empty slice since we don't have a query for this
+	// This can be implemented later if needed
+	return []models.Match{}, nil
+}
+
+func (r *matchRepository) GetAll() ([]models.Match, error) {
+	query := r.MustGetQuery("get_all_matches")
+
+	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -28,27 +40,26 @@ func (r *matchRepository) GetByJobRequestID(jobRequestID int) ([]models.Match, e
 		var match models.Match
 		var matchingSkillsJSON string
 		var employee models.Employee
+		var currentProject sql.NullString
 
 		err := rows.Scan(
-			&match.ID, &match.JobRequestID, &match.EmployeeID, &match.MatchScore,
-			&matchingSkillsJSON, &match.Notes, &match.CreatedAt,
-			&employee.ID, &employee.Name, &employee.Email, &employee.Department,
-			&employee.Level, &employee.Location, &employee.Bio,
-			&employee.CreatedAt, &employee.UpdatedAt,
+			&match.ID, &match.EmployeeID, &match.MatchScore, &matchingSkillsJSON, &match.Notes, &match.CreatedAt,
+			&employee.ID, &employee.Name, &employee.Email, &employee.Department, &employee.Level,
+			&employee.Location, &employee.Bio, &currentProject, &employee.CreatedAt, &employee.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 
 		// Parse matching skills JSON
-		json.Unmarshal([]byte(matchingSkillsJSON), &match.MatchingSkills)
-
-		// Get employee skills
-		skills, err := r.getEmployeeSkills(employee.ID)
-		if err != nil {
-			return nil, err
+		if matchingSkillsJSON != "" {
+			json.Unmarshal([]byte(matchingSkillsJSON), &match.MatchingSkills)
 		}
-		employee.Skills = skills
+
+		// Handle current project
+		if currentProject.Valid {
+			employee.CurrentProject = &currentProject.String
+		}
 
 		match.Employee = employee
 		matches = append(matches, match)
@@ -59,16 +70,16 @@ func (r *matchRepository) GetByJobRequestID(jobRequestID int) ([]models.Match, e
 
 func (r *matchRepository) Create(match *models.Match) (*models.Match, error) {
 	matchingSkillsJSON, _ := json.Marshal(match.MatchingSkills)
+	query := r.MustGetQuery("create_match")
 
 	var createdMatch models.Match
-	err := r.db.QueryRow(queries.CreateMatch, match.JobRequestID, match.EmployeeID, match.MatchScore,
+	err := r.db.QueryRow(query, match.EmployeeID, match.MatchScore,
 		matchingSkillsJSON, match.Notes).
 		Scan(&createdMatch.ID, &createdMatch.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	createdMatch.JobRequestID = match.JobRequestID
 	createdMatch.EmployeeID = match.EmployeeID
 	createdMatch.MatchScore = match.MatchScore
 	createdMatch.MatchingSkills = match.MatchingSkills
@@ -78,13 +89,15 @@ func (r *matchRepository) Create(match *models.Match) (*models.Match, error) {
 	return &createdMatch, nil
 }
 
-func (r *matchRepository) DeleteByJobRequestID(jobRequestID int) error {
-	_, err := r.db.Exec(queries.DeleteMatchesByJobRequestID, jobRequestID)
+func (r *matchRepository) Delete(id int) error {
+	query := r.MustGetQuery("delete_match")
+	_, err := r.db.Exec(query, id)
 	return err
 }
 
 func (r *matchRepository) getEmployeeSkills(employeeID int) ([]models.Skill, error) {
-	rows, err := r.db.Query(queries.GetEmployeeSkillsForMatch, employeeID)
+	query := r.MustGetQuery("get_employee_skills_for_match")
+	rows, err := r.db.Query(query, employeeID)
 	if err != nil {
 		return nil, err
 	}

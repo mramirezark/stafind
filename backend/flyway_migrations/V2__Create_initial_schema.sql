@@ -7,6 +7,7 @@ CREATE TABLE employees (
     level VARCHAR(50),
     location VARCHAR(100),
     bio TEXT,
+    current_project VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -28,40 +29,19 @@ CREATE TABLE employee_skills (
     PRIMARY KEY (employee_id, skill_id)
 );
 
--- Create job_requests table
-CREATE TABLE job_requests (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    department VARCHAR(100),
-    required_skills JSONB,
-    preferred_skills JSONB,
-    experience_level VARCHAR(50),
-    location VARCHAR(100),
-    priority VARCHAR(20) DEFAULT 'medium',
-    status VARCHAR(20) DEFAULT 'open',
-    created_by VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create matches table
+-- Create matches table (for AI agent matches)
 CREATE TABLE matches (
     id SERIAL PRIMARY KEY,
-    job_request_id INTEGER REFERENCES job_requests(id) ON DELETE CASCADE,
     employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
     match_score DECIMAL(5,2),
     matching_skills JSONB,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(job_request_id, employee_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for better performance
 CREATE INDEX idx_employee_skills_employee_id ON employee_skills(employee_id);
 CREATE INDEX idx_employee_skills_skill_id ON employee_skills(skill_id);
-CREATE INDEX idx_job_requests_status ON job_requests(status);
-CREATE INDEX idx_job_requests_department ON job_requests(department);
-CREATE INDEX idx_matches_job_request_id ON matches(job_request_id);
 CREATE INDEX idx_matches_employee_id ON matches(employee_id);
 CREATE INDEX idx_matches_score ON matches(match_score DESC);
+CREATE INDEX idx_employees_current_project ON employees(current_project);

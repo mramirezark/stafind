@@ -10,23 +10,26 @@ import (
 )
 
 type Handlers struct {
-	employeeService   services.EmployeeService
-	jobRequestService services.JobRequestService
-	searchService     services.SearchService
-	skillService      services.SkillService
+	employeeService services.EmployeeService
+	searchService   services.SearchService
+	skillService    services.SkillService
+	AIAgentHandlers *AIAgentHandlers
+	NERHandlers     *NERHandlers
 }
 
 func NewHandlers(
 	employeeService services.EmployeeService,
-	jobRequestService services.JobRequestService,
 	searchService services.SearchService,
 	skillService services.SkillService,
+	aiAgentService services.AIAgentService,
+	nerService *services.NERService,
 ) *Handlers {
 	return &Handlers{
-		employeeService:   employeeService,
-		jobRequestService: jobRequestService,
-		searchService:     searchService,
-		skillService:      skillService,
+		employeeService: employeeService,
+		searchService:   searchService,
+		skillService:    skillService,
+		AIAgentHandlers: NewAIAgentHandlers(aiAgentService),
+		NERHandlers:     NewNERHandlers(nerService, searchService),
 	}
 }
 
@@ -100,43 +103,6 @@ func (h *Handlers) DeleteEmployee(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Employee deleted successfully"})
 }
 
-// GetJobRequests returns all job requests
-func (h *Handlers) GetJobRequests(c *fiber.Ctx) error {
-	requests, err := h.jobRequestService.GetAllJobRequests()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-	return c.JSON(requests)
-}
-
-// GetJobRequest returns a specific job request by ID
-func (h *Handlers) GetJobRequest(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid job request ID"})
-	}
-
-	request, err := h.jobRequestService.GetJobRequestByID(id)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Job request not found"})
-	}
-	return c.JSON(request)
-}
-
-// CreateJobRequest creates a new job request
-func (h *Handlers) CreateJobRequest(c *fiber.Ctx) error {
-	var req models.CreateJobRequestRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	jobRequest, err := h.jobRequestService.CreateJobRequest(&req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-	return c.Status(fiber.StatusCreated).JSON(jobRequest)
-}
-
 // SearchEmployees searches for employees based on criteria
 func (h *Handlers) SearchEmployees(c *fiber.Ctx) error {
 	var searchReq models.SearchRequest
@@ -145,20 +111,6 @@ func (h *Handlers) SearchEmployees(c *fiber.Ctx) error {
 	}
 
 	matches, err := h.searchService.SearchEmployees(&searchReq)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-	return c.JSON(matches)
-}
-
-// GetMatchesForJobRequest returns matches for a specific job request
-func (h *Handlers) GetMatchesForJobRequest(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid job request ID"})
-	}
-
-	matches, err := h.searchService.FindMatchesForJobRequest(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

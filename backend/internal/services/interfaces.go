@@ -13,19 +13,9 @@ type EmployeeService interface {
 	DeleteEmployee(id int) error
 }
 
-// JobRequestService defines the interface for job request business logic
-type JobRequestService interface {
-	GetAllJobRequests() ([]models.JobRequest, error)
-	GetJobRequestByID(id int) (*models.JobRequest, error)
-	CreateJobRequest(req *models.CreateJobRequestRequest) (*models.JobRequest, error)
-	UpdateJobRequest(id int, req *models.CreateJobRequestRequest) (*models.JobRequest, error)
-	DeleteJobRequest(id int) error
-}
-
 // SearchService defines the interface for search business logic
 type SearchService interface {
 	SearchEmployees(searchReq *models.SearchRequest) ([]models.Match, error)
-	FindMatchesForJobRequest(jobRequestID int) ([]models.Match, error)
 }
 
 // SkillService defines the interface for skill business logic
@@ -40,8 +30,37 @@ type SkillService interface {
 // DashboardService defines the interface for dashboard business logic
 type DashboardService interface {
 	GetDashboardStats() (*models.DashboardStats, error)
-	GetRecentJobRequests(limit int) ([]models.JobRequest, error)
 	GetRecentEmployees(limit int) ([]models.Employee, error)
 	GetDepartmentStats() ([]models.DepartmentStats, error)
 	GetSkillDemandStats() ([]models.SkillDemandStats, error)
+	GetTopSuggestedEmployees(limit int) ([]models.TopSuggestedEmployee, error)
+	GetDashboardMetrics() (*models.DashboardMetrics, error)
+}
+
+// AIAgentService defines the interface for AI agent business logic
+type AIAgentService interface {
+	CreateAIAgentRequest(req *models.CreateAIAgentRequest) (*models.AIAgentRequest, error)
+	GetAIAgentRequest(id int) (*models.AIAgentRequest, error)
+	UpdateAIAgentRequest(id int, req *models.AIAgentRequest) error
+	ProcessAIAgentRequest(id int) (*models.AIAgentResponse, error)
+	ExtractSkillsFromText(text string) (*models.SkillExtractionResponse, error)
+	GetAIAgentRequests(limit int, offset int) ([]models.AIAgentRequest, error)
+	GetAIAgentResponse(requestID int) (*models.AIAgentResponse, error)
+}
+
+// NotificationService defines the interface for notification business logic
+type NotificationService interface {
+	SendTeamsMessage(channelID string, message string) error
+	SendAdminEmail(subject string, body string) error
+	LogError(requestID int, error string) error
+}
+
+// APIKeyService defines the interface for API key business logic
+type APIKeyService interface {
+	CreateAPIKey(req *models.CreateAPIKeyRequest) (*models.APIKeyResponse, error)
+	ValidateAPIKey(key string) (*models.APIKey, error)
+	GetAPIKeys(limit, offset int) ([]models.APIKey, error)
+	DeactivateAPIKey(id int) error
+	UpdateLastUsed(key string) error
+	RotateAPIKey(oldKeyID int) (*models.APIKeyResponse, error)
 }

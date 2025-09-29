@@ -1,0 +1,164 @@
+# AI Agent Processing Queries
+
+queries:
+  # AI Agent-related queries
+  ai_agents:
+    create_ai_agent_request:
+      description: "Create a new AI agent request"
+      category: "ai_agents"
+      operation: "insert"
+      parameters:
+        - name: "teams_message_id"
+          type: "string"
+          required: true
+          description: "Teams message ID"
+        - name: "channel_id"
+          type: "string"
+          required: true
+          description: "Teams channel ID"
+        - name: "user_id"
+          type: "string"
+          required: true
+          description: "User ID"
+        - name: "user_name"
+          type: "string"
+          required: true
+          description: "User name"
+        - name: "message_text"
+          type: "string"
+          required: true
+          description: "Message text"
+        - name: "attachment_url"
+          type: "string"
+          required: false
+          description: "Attachment URL"
+        - name: "status"
+          type: "string"
+          required: true
+          description: "Request status"
+        - name: "created_at"
+          type: "timestamp"
+          required: true
+          description: "Creation timestamp"
+      tags: ["ai_agents", "create", "insert"]
+      sql_file: "ai_agents.sql"
+      
+    get_ai_agent_request_by_id:
+      description: "Get AI agent request by ID"
+      category: "ai_agents"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Request ID"
+      tags: ["ai_agents", "single", "by_id"]
+      sql_file: "ai_agents.sql"
+      
+    get_ai_agent_request_by_teams_message_id:
+      description: "Get AI agent request by Teams message ID"
+      category: "ai_agents"
+      operation: "select"
+      parameters:
+        - name: "teams_message_id"
+          type: "string"
+          required: true
+          description: "Teams message ID"
+      tags: ["ai_agents", "single", "by_teams_message_id"]
+      sql_file: "ai_agents.sql"
+      
+    update_ai_agent_request:
+      description: "Update an AI agent request"
+      category: "ai_agents"
+      operation: "update"
+      parameters:
+        - name: "extracted_text"
+          type: "string"
+          required: false
+          description: "Extracted text"
+        - name: "extracted_skills"
+          type: "array"
+          required: false
+          description: "Extracted skills array"
+        - name: "status"
+          type: "string"
+          required: true
+          description: "Request status"
+        - name: "error"
+          type: "string"
+          required: false
+          description: "Error message"
+        - name: "processed_at"
+          type: "timestamp"
+          required: false
+          description: "Processing timestamp"
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Request ID to update"
+      tags: ["ai_agents", "update", "modify"]
+      sql_file: "ai_agents.sql"
+      
+    get_all_ai_agent_requests:
+      description: "Get all AI agent requests with pagination"
+      category: "ai_agents"
+      operation: "select"
+      parameters:
+        - name: "limit"
+          type: "int"
+          required: true
+          description: "Maximum number of results"
+        - name: "offset"
+          type: "int"
+          required: true
+          description: "Number of results to skip"
+      tags: ["ai_agents", "list", "pagination"]
+      sql_file: "ai_agents.sql"
+      
+    save_ai_agent_response:
+      description: "Save an AI agent response"
+      category: "ai_agents"
+      operation: "insert"
+      parameters:
+        - name: "request_id"
+          type: "int"
+          required: true
+          description: "Request ID"
+        - name: "matches"
+          type: "json"
+          required: true
+          description: "Matches as JSON"
+        - name: "summary"
+          type: "string"
+          required: true
+          description: "Response summary"
+        - name: "processing_time_ms"
+          type: "int"
+          required: true
+          description: "Processing time in milliseconds"
+        - name: "status"
+          type: "string"
+          required: true
+          description: "Response status"
+        - name: "error"
+          type: "string"
+          required: false
+          description: "Error message"
+        - name: "created_at"
+          type: "timestamp"
+          required: true
+          description: "Creation timestamp"
+      tags: ["ai_agents", "response", "create"]
+      sql_file: "ai_agents.sql"
+      
+    get_ai_agent_response_by_request_id:
+      description: "Get AI agent response by request ID"
+      category: "ai_agents"
+      operation: "select"
+      parameters:
+        - name: "request_id"
+          type: "int"
+          required: true
+          description: "Request ID"
+      tags: ["ai_agents", "response", "by_request_id"]
+      sql_file: "ai_agents.sql"

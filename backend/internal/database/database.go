@@ -3,8 +3,9 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
+	"stafind-backend/internal/constants"
+	"stafind-backend/internal/logger"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -18,14 +19,14 @@ type DB struct {
 
 // NewConnection creates a new database connection
 func NewConnection() (*DB, error) {
-	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "postgres")
-	password := getEnv("DB_PASSWORD", "password")
-	dbname := getEnv("DB_NAME", "stafind")
+	host := getEnv(constants.EnvDBHost, constants.DefaultDBHost)
+	port := getEnv(constants.EnvDBPort, constants.DefaultDBPort)
+	user := getEnv(constants.EnvDBUser, constants.DefaultDBUser)
+	password := getEnv(constants.EnvDBPassword, constants.DefaultDBPassword)
+	dbname := getEnv(constants.EnvDBName, constants.DefaultDBName)
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbname, constants.DefaultSSLMode)
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -36,7 +37,7 @@ func NewConnection() (*DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	log.Println("Successfully connected to database")
+	logger.Info("Successfully connected to database", "host", host, "port", port, "database", dbname)
 	return &DB{db}, nil
 }
 
@@ -58,7 +59,7 @@ func (db *DB) RunMigrations() error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	log.Println("Database migrations completed successfully")
+	logger.Info("Database migrations completed successfully")
 	return nil
 }
 

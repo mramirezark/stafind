@@ -3,7 +3,6 @@ package repositories
 import (
 	"database/sql"
 	"stafind-backend/internal/models"
-	"stafind-backend/internal/queries"
 )
 
 type skillRepository struct {
@@ -21,7 +20,8 @@ func NewSkillRepository(db *sql.DB) (SkillRepository, error) {
 }
 
 func (r *skillRepository) GetAll() ([]models.Skill, error) {
-	rows, err := r.db.Query(queries.GetAllSkills)
+	query := r.MustGetQuery("get_all_skills")
+	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +41,9 @@ func (r *skillRepository) GetAll() ([]models.Skill, error) {
 }
 
 func (r *skillRepository) GetByID(id int) (*models.Skill, error) {
+	query := r.MustGetQuery("get_skill_by_id")
 	var skill models.Skill
-	err := r.db.QueryRow(queries.GetSkillByID, id).Scan(&skill.ID, &skill.Name, &skill.Category)
+	err := r.db.QueryRow(query, id).Scan(&skill.ID, &skill.Name, &skill.Category)
 	if err != nil {
 		return nil, err
 	}
@@ -50,8 +51,9 @@ func (r *skillRepository) GetByID(id int) (*models.Skill, error) {
 }
 
 func (r *skillRepository) GetByName(name string) (*models.Skill, error) {
+	query := r.MustGetQuery("get_skill_by_name")
 	var skill models.Skill
-	err := r.db.QueryRow(queries.GetSkillByName, name).Scan(&skill.ID, &skill.Name, &skill.Category)
+	err := r.db.QueryRow(query, name).Scan(&skill.ID, &skill.Name, &skill.Category)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +61,9 @@ func (r *skillRepository) GetByName(name string) (*models.Skill, error) {
 }
 
 func (r *skillRepository) Create(skill *models.Skill) (*models.Skill, error) {
+	query := r.MustGetQuery("create_skill")
 	var createdSkill models.Skill
-	err := r.db.QueryRow(queries.CreateSkill, skill.Name, skill.Category).
+	err := r.db.QueryRow(query, skill.Name, skill.Category).
 		Scan(&createdSkill.ID, &createdSkill.Name, &createdSkill.Category)
 	if err != nil {
 		return nil, err
@@ -70,8 +73,9 @@ func (r *skillRepository) Create(skill *models.Skill) (*models.Skill, error) {
 }
 
 func (r *skillRepository) Update(id int, skill *models.Skill) (*models.Skill, error) {
+	query := r.MustGetQuery("update_skill")
 	var updatedSkill models.Skill
-	err := r.db.QueryRow(queries.UpdateSkill, skill.Name, skill.Category, id).
+	err := r.db.QueryRow(query, skill.Name, skill.Category, id).
 		Scan(&updatedSkill.ID, &updatedSkill.Name, &updatedSkill.Category)
 	if err != nil {
 		return nil, err
@@ -81,6 +85,7 @@ func (r *skillRepository) Update(id int, skill *models.Skill) (*models.Skill, er
 }
 
 func (r *skillRepository) Delete(id int) error {
-	_, err := r.db.Exec(queries.DeleteSkill, id)
+	query := r.MustGetQuery("delete_skill")
+	_, err := r.db.Exec(query, id)
 	return err
 }

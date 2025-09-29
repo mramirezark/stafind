@@ -28,3 +28,15 @@ FROM skills s
 JOIN employee_skills es ON s.id = es.skill_id
 WHERE es.employee_id = $1
 ORDER BY s.name;
+
+-- Get all matches with employee information
+-- Query name: get_all_matches
+SELECT m.id, m.employee_id, m.match_score, m.matching_skills, m.notes, m.created_at,
+       e.id, e.name, e.email, e.department, e.level, e.location, e.bio, e.current_project, e.created_at, e.updated_at
+FROM matches m
+LEFT JOIN employees e ON m.employee_id = e.id
+ORDER BY m.created_at DESC;
+
+-- Delete a match by ID
+-- Query name: delete_match
+DELETE FROM matches WHERE id = $1;

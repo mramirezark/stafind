@@ -1,0 +1,410 @@
+{
+  "name": "Skills",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "teams-optimized-extraction",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "99f85cbe-4b5e-4744-a942-7998f328aada",
+      "name": "Teams Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        368
+      ],
+      "webhookId": "teams-optimized-extraction"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process incoming Teams message\nconst input = $input.first().json;\nconsole.log('=== TEAMS MESSAGE RECEIVED ===');\nconsole.log('Raw input:', JSON.stringify(input, null, 2));\n\n// Normalize message_type\nconst normalizedMessageType = String(input.body.message_type || '').toLowerCase().trim();\n\n// Check if message contains job description or tech stack request\nconst messageText = input.body.message_text || '';\nconst lowerText = messageText.toLowerCase();\n\n// Keywords that indicate job description or tech stack request\nconst jobKeywords = ['looking for', 'need', 'hiring', 'recruit', 'find', 'search for', 'require', 'skills', 'engineer', 'developer', 'programmer'];\nconst techKeywords = ['react', 'angular', 'vue', 'javascript', 'python', 'java', 'node', 'aws', 'docker', 'kubernetes', 'sql', 'mongodb'];\n\nconst isJobRequest = jobKeywords.some(keyword => lowerText.includes(keyword)) || \n                     techKeywords.some(keyword => lowerText.includes(keyword)) ||\n                     lowerText.includes('years experience') ||\n                     lowerText.includes('experience with');\n\nreturn {\n  json: {\n    ...input,\n    message_type: normalizedMessageType,\n    is_job_request: isJobRequest,\n    message_text: messageText,\n    has_attachments: input.attachments && input.attachments.length > 0\n  }\n};"
+      },
+      "id": "44b4464b-34c5-4ee5-837a-316c6c81087b",
+      "name": "Process Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message_type }}",
+              "value2": "message"
+            }
+          ]
+        }
+      },
+      "id": "108a1668-1c46-4630-bcc8-3b187634b740",
+      "name": "Is Valid Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        48,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_job_request }}",
+              "value2": "={{ true }}"
+            }
+          ]
+        }
+      },
+      "id": "6a9aa094-b463-44c9-80a1-2cd943b8c835",
+      "name": "Is Job Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        272,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.has_attachments }}",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "62aad0ed-85b8-402a-a794-71efd9268fe1",
+      "name": "Has Attachments?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        496,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare attachment for processing\nconst input = $input.first().json;\nconst attachment = input.attachments[0];\n\nconsole.log('=== PROCESSING ATTACHMENT ===');\nconsole.log('Attachment:', JSON.stringify(attachment, null, 2));\n\nreturn {\n  json: {\n    original_message: input,\n    attachment_url: attachment.contentUrl,\n    attachment_name: attachment.name,\n    attachment_type: attachment.contentType,\n    is_pdf: attachment.contentType === 'application/pdf' || attachment.name.toLowerCase().endsWith('.pdf'),\n    is_text: attachment.contentType === 'text/plain' || attachment.name.toLowerCase().endsWith('.txt')\n  }\n};"
+      },
+      "id": "12b3c716-b4e5-4781-9f20-4daa249a41a6",
+      "name": "Prepare Attachment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        704,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.attachment_url }}",
+        "options": {}
+      },
+      "id": "34f3af46-761b-4c99-a488-381db41987cc",
+      "name": "Download Attachment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        912,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine message text with extracted attachment content\nconst originalMessage = $('Prepare Attachment').first().json.original_message;\nconst extractedText = $input.first().json.text || $input.first().json || '';\n\nconsole.log('=== TEXT EXTRACTION RESULT ===');\nconsole.log('Extracted text length:', extractedText.length);\n\nconst combinedText = `${originalMessage.message_text}\\n\\n--- JOB DESCRIPTION ---\\n${extractedText}`;\n\nreturn {\n  json: {\n    ...originalMessage,\n    combined_text: combinedText,\n    has_attachment: true,\n    attachment_content: extractedText,\n    content_length: extractedText.length\n  }\n};"
+      },
+      "id": "25807e4e-0114-42ba-9a09-0938b2c73822",
+      "name": "Combine Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Use only message text for non-attachment messages\nconst messageText = $input.first().json.message_text || '';\n\nreturn {\n  json: {\n    ...$input.first().json   \n  }\n};"
+      },
+      "id": "416303ec-dc27-49a3-ab24-37073a133064",
+      "name": "Message Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        800,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://periodontic-corrin-unreturned.ngrok-free.dev/api/v1/ner/extract-and-search",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6ImFkbWluQHN0YWZpbmQuY29tIiwiZmlyc3RfbmFtZSI6IlN5c3RlbSIsImxhc3RfbmFtZSI6IkFkbWluaXN0cmF0b3IiLCJyb2xlcyI6WyJhZG1pbiJdLCJpc3MiOiJzdGFmaW5kIiwic3ViIjoiMSIsImV4cCI6MTc1ODk1NDg0MiwibmJmIjoxNzU4ODY4NDQyLCJpYXQiOjE3NTg4Njg0NDJ9.vVkRNXx7ciSEnzk0CEJJnlTo09ogeNnxzqMFdqQ3JWI"
+            }
+          ]
+        }
+      },
+      "id": "775ff83d-112b-4fb3-a457-c2167dc46aaa",
+      "name": "Extract Skills & Search Employees",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process the combined NER and search results\nconst input = $input.first().json;\nconst apiResult = $('Extract Skills & Search Employees').first().json;\n\nconsole.log('=== COMBINED NER & SEARCH RESULTS ===');\nconsole.log('API Result:', JSON.stringify(apiResult, null, 2));\n\n// Extract the data from the API response\nlet extractedSkills = {};\nlet matchingEmployees = [];\nlet totalMatches = 0;\nlet processingTime = '';\n\nif (apiResult && apiResult.success && apiResult.data) {\n  extractedSkills = apiResult.data.extracted_skills || {};\n  matchingEmployees = apiResult.data.matching_employees || [];\n  totalMatches = apiResult.data.total_matches || 0;\n  processingTime = apiResult.data.processing_time || '';\n}\n\n// Format the response for Teams\nconst teamsResponse = {\n  message_type: 'response',\n  original_message_id: input.message_id,\n  channel_id: input.channel_id,\n  user_id: input.user_id,\n  user_name: input.user_name,\n  timestamp: new Date().toISOString(),\n  \n  // NER Results\n  extracted_skills: extractedSkills.extracted_skills || {},\n  total_skills_found: extractedSkills.total_skills_found || 0,\n  skill_extraction_method: extractedSkills.skill_extraction_method || 'go_ner_library_prose',\n  ai_confidence: extractedSkills.ai_confidence || 'high',\n  \n  // Search Results\n  matching_employees: matchingEmployees,\n  total_matches: totalMatches,\n  \n  // Processing Info\n  processing_time: processingTime,\n  content_length: input.content_length || 0,\n  has_attachment: input.has_attachment || false,\n  \n  // Summary for Teams\n  summary: `Found ${totalMatches} matching employees based on ${extractedSkills.total_skills_found || 0} extracted skills`,\n  \n  // Original data for debugging\n  original_data: input\n};\n\nreturn {\n  json: teamsResponse\n};"
+      },
+      "id": "46e416b0-e84a-4baf-b31c-5275e2d2de8f",
+      "name": "Process Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"success\", \"message\": \"Job request processed with optimized NER extraction and employee search\", \"data\": $json, \"processing_info\": { \"method\": \"optimized_single_call\", \"content_length\": $json.content_length || 0, \"skills_found\": $json.total_skills_found || 0, \"employees_found\": $json.total_matches || 0, \"extraction_method\": $json.skill_extraction_method, \"ai_confidence\": $json.ai_confidence, \"processing_time\": $json.processing_time } } }}",
+        "options": {}
+      },
+      "id": "b5b0952e-b9e1-4377-8c04-10283905bfa8",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"ignored\", \"message\": \"Message ignored - not a job description or tech stack request\", \"data\": $json } }}",
+        "options": {}
+      },
+      "id": "5b5b320d-682b-4558-a016-7d2ba1d61d1d",
+      "name": "Respond Ignored",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        496,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"filtered\", \"message\": \"Message filtered out - not a valid message type\", \"data\": $json } }}",
+        "options": {}
+      },
+      "id": "5a4c5185-dd36-471e-b98c-7892fd3e1bcb",
+      "name": "Respond Filtered",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        272,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        112
+      ],
+      "id": "d0c5510f-c9fd-401c-b652-bd364df63b33",
+      "name": "Extract from File"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Teams Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Is Valid Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid Message?": {
+      "main": [
+        [
+          {
+            "node": "Is Job Request?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Filtered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Job Request?": {
+      "main": [
+        [
+          {
+            "node": "Has Attachments?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Ignored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Attachments?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Attachment": {
+      "main": [
+        [
+          {
+            "node": "Download Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Content": {
+      "main": [
+        [
+          {
+            "node": "Extract Skills & Search Employees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Only": {
+      "main": [
+        [
+          {
+            "node": "Extract Skills & Search Employees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Skills & Search Employees": {
+      "main": [
+        [
+          {
+            "node": "Process Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Results": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Attachment": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Combine Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bb18e369-c98e-4fc9-895c-614ad94ee68d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "94c09d7d77cf7fb16b5f9ae47120e898a74ae9a1a859791d2e0559060748ce71"
+  },
+  "id": "BCGC6NpqwrSWc6Ep",
+  "tags": []
+}

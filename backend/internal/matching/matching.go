@@ -2,7 +2,9 @@ package matching
 
 import (
 	"sort"
+	"stafind-backend/internal/constants"
 	"stafind-backend/internal/models"
+	"strings"
 )
 
 // MatchEngine handles the matching logic between job requests and employees
@@ -13,16 +15,15 @@ func NewMatchEngine() *MatchEngine {
 	return &MatchEngine{}
 }
 
-// FindMatches finds the best matching employees for a job request
-func (me *MatchEngine) FindMatches(jobRequest *models.JobRequest, employees []models.Employee) []models.Match {
+// SearchEmployees searches for employees based on search criteria
+func (me *MatchEngine) SearchEmployees(searchReq *models.SearchRequest, employees []models.Employee) []models.Match {
 	var matches []models.Match
 
 	for _, employee := range employees {
-		score, matchingSkills := me.calculateMatchScore(jobRequest, &employee)
+		score, matchingSkills := me.calculateMatchScore(searchReq, &employee)
 
 		if score > 0 {
 			match := models.Match{
-				JobRequestID:   jobRequest.ID,
 				EmployeeID:     employee.ID,
 				MatchScore:     score,
 				MatchingSkills: matchingSkills,
@@ -36,23 +37,6 @@ func (me *MatchEngine) FindMatches(jobRequest *models.JobRequest, employees []mo
 	sort.Slice(matches, func(i, j int) bool {
 		return matches[i].MatchScore > matches[j].MatchScore
 	})
-
-	return matches
-}
-
-// SearchEmployees searches for employees based on search criteria
-func (me *MatchEngine) SearchEmployees(searchReq *models.SearchRequest, employees []models.Employee) []models.Match {
-	// Create a temporary job request for matching
-	tempJobRequest := &models.JobRequest{
-		RequiredSkills:  searchReq.RequiredSkills,
-		PreferredSkills: searchReq.PreferredSkills,
-		Department:      searchReq.Department,
-		ExperienceLevel: searchReq.ExperienceLevel,
-		Location:        searchReq.Location,
-	}
-
-	// Find matches using the existing logic
-	matches := me.FindMatches(tempJobRequest, employees)
 
 	// Filter by minimum match score if specified
 	if searchReq.MinMatchScore > 0 {
@@ -68,8 +52,8 @@ func (me *MatchEngine) SearchEmployees(searchReq *models.SearchRequest, employee
 	return matches
 }
 
-// calculateMatchScore calculates the match score between a job request and employee
-func (me *MatchEngine) calculateMatchScore(jobRequest *models.JobRequest, employee *models.Employee) (float64, []string) {
+// calculateMatchScore calculates the match score between search criteria and employee
+func (me *MatchEngine) calculateMatchScore(searchReq *models.SearchRequest, employee *models.Employee) (float64, []string) {
 	var totalScore float64
 	var matchingSkills []string
 
@@ -78,25 +62,25 @@ func (me *MatchEngine) calculateMatchScore(jobRequest *models.JobRequest, employ
 	for _, skill := range employee.Skills {
 		employeeSkillMap[skill.Name] = models.EmployeeSkill{
 			Skill:            skill,
-			ProficiencyLevel: 3, // Default proficiency level
-			YearsExperience:  2, // Default years of experience
+			ProficiencyLevel: constants.DefaultProficiencyLevel, // Default proficiency level
+			YearsExperience:  constants.DefaultYearsExperience,  // Default years of experience
 		}
 	}
 
 	// Score required skills (higher weight)
-	requiredScore := me.scoreSkills(jobRequest.RequiredSkills, employeeSkillMap, 3.0, &matchingSkills)
+	requiredScore := me.scoreSkills(searchReq.RequiredSkills, employeeSkillMap, constants.RequiredSkillsWeight, &matchingSkills)
 
 	// Score preferred skills (lower weight)
-	preferredScore := me.scoreSkills(jobRequest.PreferredSkills, employeeSkillMap, 1.0, &matchingSkills)
+	preferredScore := me.scoreSkills(searchReq.PreferredSkills, employeeSkillMap, constants.PreferredSkillsWeight, &matchingSkills)
 
 	// Department match bonus
-	departmentBonus := me.calculateDepartmentBonus(jobRequest.Department, employee.Department)
+	departmentBonus := me.calculateDepartmentBonus(searchReq.Department, employee.Department)
 
 	// Experience level bonus
-	experienceBonus := me.calculateExperienceBonus(jobRequest.ExperienceLevel, employee.Level)
+	experienceBonus := me.calculateExperienceBonus(searchReq.ExperienceLevel, employee.Level)
 
 	// Location bonus
-	locationBonus := me.calculateLocationBonus(jobRequest.Location, employee.Location)
+	locationBonus := me.calculateLocationBonus(searchReq.Location, employee.Location)
 
 	totalScore = requiredScore + preferredScore + departmentBonus + experienceBonus + locationBonus
 
@@ -113,19 +97,19 @@ func (me *MatchEngine) scoreSkills(skillNames []string, employeeSkillMap map[str
 	var matchedCount int
 
 	for _, skillName := range skillNames {
-		if employeeSkill, exists := employeeSkillMap[skillName]; exists {
+		if employeeSkill, matchedSkillName := me.findMatchingSkill(skillName, employeeSkillMap); employeeSkill != nil {
 			// Base score for having the skill
-			skillScore := weight * 2.0
+			skillScore := weight * constants.BaseSkillScoreMultiplier
 
 			// Add proficiency bonus (1-5 scale)
-			proficiencyBonus := float64(employeeSkill.ProficiencyLevel) * 0.5
+			proficiencyBonus := float64(employeeSkill.ProficiencyLevel) * constants.ProficiencyBonusMultiplier
 
 			// Add experience bonus
-			experienceBonus := employeeSkill.YearsExperience * 0.1
+			experienceBonus := employeeSkill.YearsExperience * constants.ExperienceBonusMultiplier
 
 			totalScore += skillScore + proficiencyBonus + experienceBonus
 			matchedCount++
-			*matchingSkills = append(*matchingSkills, skillName)
+			*matchingSkills = append(*matchingSkills, matchedSkillName)
 		}
 	}
 
@@ -133,7 +117,69 @@ func (me *MatchEngine) scoreSkills(skillNames []string, employeeSkillMap map[str
 	coverage := float64(matchedCount) / float64(len(skillNames))
 
 	// Apply coverage multiplier (encourage higher coverage)
-	return totalScore * (0.5 + 0.5*coverage)
+	return totalScore * (constants.CoverageBaseMultiplier + constants.CoverageBonusMultiplier*coverage)
+}
+
+// findMatchingSkill finds a matching skill with case-insensitive and normalized matching
+func (me *MatchEngine) findMatchingSkill(skillName string, employeeSkillMap map[string]models.EmployeeSkill) (*models.EmployeeSkill, string) {
+	// Normalize the skill name for matching
+	normalizedSkillName := me.normalizeSkillName(skillName)
+
+	// Try exact match first (case-insensitive)
+	for dbSkillName, employeeSkill := range employeeSkillMap {
+		if strings.EqualFold(dbSkillName, skillName) {
+			return &employeeSkill, dbSkillName
+		}
+	}
+
+	// Try normalized match
+	for dbSkillName, employeeSkill := range employeeSkillMap {
+		if strings.EqualFold(me.normalizeSkillName(dbSkillName), normalizedSkillName) {
+			return &employeeSkill, dbSkillName
+		}
+	}
+
+	// Try partial match for common abbreviations
+	for dbSkillName, employeeSkill := range employeeSkillMap {
+		if me.isSkillAbbreviation(skillName, dbSkillName) {
+			return &employeeSkill, dbSkillName
+		}
+	}
+
+	return nil, ""
+}
+
+// normalizeSkillName normalizes skill names for better matching
+func (me *MatchEngine) normalizeSkillName(skillName string) string {
+	normalized := strings.ToLower(strings.TrimSpace(skillName))
+
+	// Common skill name normalizations
+	skillMappings := constants.SkillNormalizationMap
+
+	if mapped, exists := skillMappings[normalized]; exists {
+		return mapped
+	}
+
+	return normalized
+}
+
+// isSkillAbbreviation checks if one skill is an abbreviation of another
+func (me *MatchEngine) isSkillAbbreviation(abbr, fullName string) bool {
+	abbr = strings.ToLower(strings.TrimSpace(abbr))
+	fullName = strings.ToLower(strings.TrimSpace(fullName))
+
+	// Common abbreviation mappings
+	abbreviationMappings := constants.SkillAbbreviationMap
+
+	if possibleMatches, exists := abbreviationMappings[abbr]; exists {
+		for _, possible := range possibleMatches {
+			if strings.Contains(fullName, possible) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // calculateDepartmentBonus calculates bonus for department match
@@ -142,7 +188,7 @@ func (me *MatchEngine) calculateDepartmentBonus(jobDept, employeeDept string) fl
 		return 0
 	}
 	if jobDept == employeeDept {
-		return 2.0
+		return constants.DepartmentMatchBonus
 	}
 	return 0
 }
@@ -153,23 +199,17 @@ func (me *MatchEngine) calculateExperienceBonus(jobLevel, employeeLevel string) 
 		return 0
 	}
 
-	levelMap := map[string]int{
-		"junior":    1,
-		"mid":       2,
-		"senior":    3,
-		"staff":     4,
-		"principal": 5,
-	}
+	levelMap := constants.ExperienceLevelMap
 
 	jobLevelNum := levelMap[jobLevel]
 	employeeLevelNum := levelMap[employeeLevel]
 
 	if employeeLevelNum >= jobLevelNum {
 		// Employee meets or exceeds required level
-		return 1.5
+		return constants.ExperienceLevelMatchBonus
 	} else {
 		// Employee is below required level, but still gets some points
-		return float64(employeeLevelNum) / float64(jobLevelNum) * 1.0
+		return float64(employeeLevelNum) / float64(jobLevelNum) * constants.ExperienceLevelPartialMultiplier
 	}
 }
 
@@ -179,7 +219,7 @@ func (me *MatchEngine) calculateLocationBonus(jobLocation, employeeLocation stri
 		return 0
 	}
 	if jobLocation == employeeLocation {
-		return 1.0
+		return constants.LocationMatchBonus
 	}
 	return 0
 }

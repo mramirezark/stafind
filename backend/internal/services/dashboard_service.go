@@ -1,22 +1,24 @@
 package services
 
 import (
+	"stafind-backend/internal/constants"
 	"stafind-backend/internal/models"
 	"stafind-backend/internal/repositories"
-	"time"
 )
 
 type dashboardService struct {
-	employeeRepo   repositories.EmployeeRepository
-	jobRequestRepo repositories.JobRequestRepository
-	skillRepo      repositories.SkillRepository
+	employeeRepo repositories.EmployeeRepository
+	skillRepo    repositories.SkillRepository
+	aiAgentRepo  repositories.AIAgentRepository
+	matchRepo    repositories.MatchRepository
 }
 
-func NewDashboardService(employeeRepo repositories.EmployeeRepository, jobRequestRepo repositories.JobRequestRepository, skillRepo repositories.SkillRepository) DashboardService {
+func NewDashboardService(employeeRepo repositories.EmployeeRepository, skillRepo repositories.SkillRepository, aiAgentRepo repositories.AIAgentRepository, matchRepo repositories.MatchRepository) DashboardService {
 	return &dashboardService{
-		employeeRepo:   employeeRepo,
-		jobRequestRepo: jobRequestRepo,
-		skillRepo:      skillRepo,
+		employeeRepo: employeeRepo,
+		skillRepo:    skillRepo,
+		aiAgentRepo:  aiAgentRepo,
+		matchRepo:    matchRepo,
 	}
 }
 
@@ -29,60 +31,32 @@ func (s *dashboardService) GetDashboardStats() (*models.DashboardStats, error) {
 	}
 	totalEmployees := len(employees)
 
-	// Get total job requests
-	jobRequests, err := s.jobRequestRepo.GetAll()
+	// Get AI agent requests
+	requests, err := s.aiAgentRepo.GetAll(constants.MaxPageSize, constants.DefaultOffset) // Get all requests for stats
 	if err != nil {
 		return nil, err
 	}
-	totalJobRequests := len(jobRequests)
 
-	// Count active matches (job requests with status 'open')
-	activeMatches := 0
-	for _, jr := range jobRequests {
-		if jr.Status == "open" {
-			activeMatches++
-		}
-	}
+	// Count requests by status
+	totalRequests := len(requests)
+	completedRequests := 0
+	pendingRequests := 0
 
-	// Count recent requests (last 7 days)
-	weekAgo := time.Now().AddDate(0, 0, -7)
-	recentRequests := 0
-	for _, jr := range jobRequests {
-		if jr.CreatedAt.After(weekAgo) {
-			recentRequests++
+	for _, req := range requests {
+		switch req.Status {
+		case "completed":
+			completedRequests++
+		case "pending", "processing":
+			pendingRequests++
 		}
 	}
 
 	return &models.DashboardStats{
-		TotalEmployees:   totalEmployees,
-		TotalJobRequests: totalJobRequests,
-		ActiveMatches:    activeMatches,
-		RecentRequests:   recentRequests,
+		TotalEmployees:    totalEmployees,
+		TotalRequests:     totalRequests,
+		CompletedRequests: completedRequests,
+		PendingRequests:   pendingRequests,
 	}, nil
-}
-
-// GetRecentJobRequests returns recent job requests
-func (s *dashboardService) GetRecentJobRequests(limit int) ([]models.JobRequest, error) {
-	jobRequests, err := s.jobRequestRepo.GetAll()
-	if err != nil {
-		return nil, err
-	}
-
-	// Sort by created_at descending and limit
-	// Simple sort implementation
-	for i := 0; i < len(jobRequests)-1; i++ {
-		for j := i + 1; j < len(jobRequests); j++ {
-			if jobRequests[i].CreatedAt.Before(jobRequests[j].CreatedAt) {
-				jobRequests[i], jobRequests[j] = jobRequests[j], jobRequests[i]
-			}
-		}
-	}
-
-	if limit > len(jobRequests) {
-		limit = len(jobRequests)
-	}
-
-	return jobRequests[:limit], nil
 }
 
 // GetRecentEmployees returns recent employees
@@ -137,47 +111,152 @@ func (s *dashboardService) GetDepartmentStats() ([]models.DepartmentStats, error
 
 // GetSkillDemandStats returns skill demand statistics
 func (s *dashboardService) GetSkillDemandStats() ([]models.SkillDemandStats, error) {
-	jobRequests, err := s.jobRequestRepo.GetAll()
+	// Get all AI agent requests
+	requests, err := s.aiAgentRepo.GetAll(constants.MaxPageSize, constants.DefaultOffset)
 	if err != nil {
 		return nil, err
 	}
 
-	// Count skill demand from job requests
+	// Count skills from extracted skills in requests
 	skillCount := make(map[string]int)
-	skillCategory := make(map[string]string)
-
-	for _, jr := range jobRequests {
-		// Count required skills
-		for _, skill := range jr.RequiredSkills {
-			skillCount[skill]++
-		}
-		// Count preferred skills
-		for _, skill := range jr.PreferredSkills {
-			skillCount[skill]++
+	for _, req := range requests {
+		if req.ExtractedSkills != nil {
+			for _, skill := range req.ExtractedSkills {
+				skillCount[skill]++
+			}
 		}
 	}
 
-	// Get skill categories from skills table
-	skills, err := s.skillRepo.GetAll()
-	if err == nil {
-		for _, skill := range skills {
-			skillCategory[skill.Name] = skill.Category
-		}
-	}
-
-	// Convert to slice
+	// Convert to slice and sort by count
 	var stats []models.SkillDemandStats
-	for skill, count := range skillCount {
-		category := skillCategory[skill]
-		if category == "" {
-			category = "Other"
+	for skillName, count := range skillCount {
+		// Get skill category
+		skills, err := s.skillRepo.GetAll()
+		if err != nil {
+			continue
 		}
+
+		category := "Other"
+		for _, skill := range skills {
+			if skill.Name == skillName {
+				category = skill.Category
+				break
+			}
+		}
+
 		stats = append(stats, models.SkillDemandStats{
-			SkillName: skill,
+			SkillName: skillName,
 			Count:     count,
 			Category:  category,
 		})
 	}
 
+	// Sort by count (descending)
+	for i := 0; i < len(stats)-1; i++ {
+		for j := i + 1; j < len(stats); j++ {
+			if stats[i].Count < stats[j].Count {
+				stats[i], stats[j] = stats[j], stats[i]
+			}
+		}
+	}
+
+	// Return top 10
+	if len(stats) > 10 {
+		stats = stats[:10]
+	}
+
 	return stats, nil
+}
+
+// GetTopSuggestedEmployees returns top suggested employees based on match frequency and scores
+func (s *dashboardService) GetTopSuggestedEmployees(limit int) ([]models.TopSuggestedEmployee, error) {
+	// Get all matches
+	matches, err := s.matchRepo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	// Group matches by employee and calculate stats
+	employeeStats := make(map[int]*models.TopSuggestedEmployee)
+
+	for _, match := range matches {
+		if match.Employee.ID == 0 {
+			continue // Skip if employee not loaded
+		}
+
+		if emp, exists := employeeStats[match.Employee.ID]; exists {
+			emp.MatchCount++
+			emp.AvgMatchScore = (emp.AvgMatchScore*float64(emp.MatchCount-1) + match.MatchScore) / float64(emp.MatchCount)
+		} else {
+			employeeStats[match.Employee.ID] = &models.TopSuggestedEmployee{
+				EmployeeID:     match.Employee.ID,
+				EmployeeName:   match.Employee.Name,
+				EmployeeEmail:  match.Employee.Email,
+				Department:     match.Employee.Department,
+				Level:          match.Employee.Level,
+				Location:       match.Employee.Location,
+				CurrentProject: match.Employee.CurrentProject,
+				MatchCount:     1,
+				AvgMatchScore:  match.MatchScore,
+			}
+		}
+	}
+
+	// Convert to slice and sort by match count and average score
+	var topEmployees []models.TopSuggestedEmployee
+	for _, emp := range employeeStats {
+		topEmployees = append(topEmployees, *emp)
+	}
+
+	// Sort by match count (descending), then by average score (descending)
+	for i := 0; i < len(topEmployees)-1; i++ {
+		for j := i + 1; j < len(topEmployees); j++ {
+			if topEmployees[i].MatchCount < topEmployees[j].MatchCount ||
+				(topEmployees[i].MatchCount == topEmployees[j].MatchCount &&
+					topEmployees[i].AvgMatchScore < topEmployees[j].AvgMatchScore) {
+				topEmployees[i], topEmployees[j] = topEmployees[j], topEmployees[i]
+			}
+		}
+	}
+
+	// Limit results
+	if limit > len(topEmployees) {
+		limit = len(topEmployees)
+	}
+
+	return topEmployees[:limit], nil
+}
+
+// GetDashboardMetrics returns comprehensive dashboard metrics
+func (s *dashboardService) GetDashboardMetrics() (*models.DashboardMetrics, error) {
+	// Get basic stats
+	stats, err := s.GetDashboardStats()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get most requested skills
+	mostRequestedSkills, err := s.GetSkillDemandStats()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get top suggested employees
+	topSuggestedEmployees, err := s.GetTopSuggestedEmployees(5)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get recent requests
+	recentRequests, err := s.aiAgentRepo.GetAll(10, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.DashboardMetrics{
+		Stats:                 *stats,
+		MostRequestedSkills:   mostRequestedSkills,
+		TopSuggestedEmployees: topSuggestedEmployees,
+		RecentRequests:        recentRequests,
+	}, nil
 }

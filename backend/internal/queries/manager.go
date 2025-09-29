@@ -76,17 +76,11 @@ func (qm *QueryManager) loadPredefinedQueries() {
 		"create_skill":                  CreateSkill,
 		"add_employee_skill":            AddEmployeeSkill,
 		"remove_employee_skills":        RemoveEmployeeSkills,
-		"get_all_job_requests":          GetAllJobRequests,
-		"get_job_request_by_id":         GetJobRequestByID,
-		"create_job_request":            CreateJobRequest,
-		"update_job_request":            UpdateJobRequest,
-		"delete_job_request":            DeleteJobRequest,
 		"get_all_skills":                GetAllSkills,
 		"update_skill":                  UpdateSkill,
 		"delete_skill":                  DeleteSkill,
-		"get_matches_by_job_request":    GetMatchesByJobRequestID,
 		"create_match":                  CreateMatch,
-		"delete_matches_by_job_request": DeleteMatchesByJobRequestID,
+		"delete_match":                  DeleteMatch,
 		"get_employee_skills_for_match": GetEmployeeSkillsForMatch,
 	}
 
@@ -115,11 +109,6 @@ func (qm *QueryManager) ValidateQueries() error {
 		"update_employee",
 		"delete_employee",
 		"get_employee_skills",
-		"get_all_job_requests",
-		"get_job_request_by_id",
-		"create_job_request",
-		"update_job_request",
-		"delete_job_request",
 		"get_all_skills",
 		"get_skill_by_id",
 		"get_skill_by_name",
@@ -145,6 +134,6 @@ func (qm *QueryManager) ValidateQueries() error {
 // BuildDynamicQuery builds a dynamic query based on conditions
 func (qm *QueryManager) BuildDynamicQuery(baseQuery string, conditions map[string]interface{}) (string, []interface{}) {
 	// This is a simplified version - in a real application, you might want
-	// a more sophisticated query builder that handles WHERE clauses, JOINs, etc.
+	// a more sophisticated approach that handles WHERE clauses, JOINs, etc.
 	return baseQuery, []interface{}{}
 }

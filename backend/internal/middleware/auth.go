@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"net/http"
 	"strings"
 
 	"stafind-backend/internal/auth"
+	"stafind-backend/internal/constants"
 	"stafind-backend/internal/models"
 
 	"github.com/gofiber/fiber/v2"
@@ -16,7 +16,7 @@ func AuthMiddleware() fiber.Handler {
 		// Get token from Authorization header
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			return c.Status(constants.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Authorization header required",
 			})
 		}
@@ -24,7 +24,7 @@ func AuthMiddleware() fiber.Handler {
 		// Check if token starts with "Bearer "
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			return c.Status(constants.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Invalid authorization header format",
 			})
 		}
@@ -34,7 +34,7 @@ func AuthMiddleware() fiber.Handler {
 		// Validate JWT token
 		claims, err := auth.ValidateJWT(token)
 		if err != nil {
-			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			return c.Status(constants.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Invalid or expired token",
 			})
 		}
@@ -56,7 +56,7 @@ func RequireRole(requiredRole string) fiber.Handler {
 		// Check if user is authenticated
 		userRoles, ok := c.Locals("user_roles").([]string)
 		if !ok {
-			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			return c.Status(constants.StatusUnauthorized).JSON(fiber.Map{
 				"error": "User not authenticated",
 			})
 		}
@@ -71,7 +71,7 @@ func RequireRole(requiredRole string) fiber.Handler {
 		}
 
 		if !hasRole {
-			return c.Status(http.StatusForbidden).JSON(fiber.Map{
+			return c.Status(constants.StatusForbidden).JSON(fiber.Map{
 				"error": "Insufficient permissions",
 			})
 		}
@@ -86,7 +86,7 @@ func RequireAnyRole(requiredRoles ...string) fiber.Handler {
 		// Check if user is authenticated
 		userRoles, ok := c.Locals("user_roles").([]string)
 		if !ok {
-			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			return c.Status(constants.StatusUnauthorized).JSON(fiber.Map{
 				"error": "User not authenticated",
 			})
 		}
@@ -106,7 +106,7 @@ func RequireAnyRole(requiredRoles ...string) fiber.Handler {
 		}
 
 		if !hasRole {
-			return c.Status(http.StatusForbidden).JSON(fiber.Map{
+			return c.Status(constants.StatusForbidden).JSON(fiber.Map{
 				"error": "Insufficient permissions",
 			})
 		}
@@ -153,22 +153,22 @@ func OptionalAuth() fiber.Handler {
 func GetCurrentUser(c *fiber.Ctx) (*models.User, error) {
 	userID, ok := c.Locals("user_id").(int)
 	if !ok {
-		return nil, fiber.NewError(http.StatusUnauthorized, "User not authenticated")
+		return nil, fiber.NewError(constants.StatusUnauthorized, "User not authenticated")
 	}
 
 	email, ok := c.Locals("user_email").(string)
 	if !ok {
-		return nil, fiber.NewError(http.StatusUnauthorized, "User email not found")
+		return nil, fiber.NewError(constants.StatusUnauthorized, "User email not found")
 	}
 
 	firstName, ok := c.Locals("user_first_name").(string)
 	if !ok {
-		return nil, fiber.NewError(http.StatusUnauthorized, "User first name not found")
+		return nil, fiber.NewError(constants.StatusUnauthorized, "User first name not found")
 	}
 
 	lastName, ok := c.Locals("user_last_name").(string)
 	if !ok {
-		return nil, fiber.NewError(http.StatusUnauthorized, "User last name not found")
+		return nil, fiber.NewError(constants.StatusUnauthorized, "User last name not found")
 	}
 
 	roles, ok := c.Locals("user_roles").([]string)

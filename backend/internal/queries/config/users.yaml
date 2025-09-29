@@ -1,0 +1,326 @@
+# User and Role Management Queries
+
+queries:
+  # User-related queries
+  users:
+    create_user:
+      description: "Create a new user"
+      category: "users"
+      operation: "insert"
+      parameters:
+        - name: "username"
+          type: "string"
+          required: true
+          description: "Username"
+        - name: "email"
+          type: "string"
+          required: true
+          description: "Email address"
+        - name: "password_hash"
+          type: "string"
+          required: true
+          description: "Password hash"
+        - name: "first_name"
+          type: "string"
+          required: true
+          description: "First name"
+        - name: "last_name"
+          type: "string"
+          required: true
+          description: "Last name"
+        - name: "role_id"
+          type: "int"
+          required: false
+          description: "Role ID"
+        - name: "is_active"
+          type: "boolean"
+          required: true
+          description: "Whether user is active"
+      tags: ["users", "create", "insert"]
+      sql_file: "users.sql"
+      
+    get_user_by_id:
+      description: "Get user by ID with role information"
+      category: "users"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "User ID"
+      tags: ["users", "single", "by_id"]
+      sql_file: "users.sql"
+      
+    get_user_by_email:
+      description: "Get user by email with role information"
+      category: "users"
+      operation: "select"
+      parameters:
+        - name: "email"
+          type: "string"
+          required: true
+          description: "Email address"
+      tags: ["users", "single", "by_email"]
+      sql_file: "users.sql"
+      
+    get_user_by_username:
+      description: "Get user by username with role information"
+      category: "users"
+      operation: "select"
+      parameters:
+        - name: "username"
+          type: "string"
+          required: true
+          description: "Username"
+      tags: ["users", "single", "by_username"]
+      sql_file: "users.sql"
+      
+    update_user:
+      description: "Update user information"
+      category: "users"
+      operation: "update"
+      parameters:
+        - name: "username"
+          type: "string"
+          required: true
+          description: "Username"
+        - name: "email"
+          type: "string"
+          required: true
+          description: "Email address"
+        - name: "first_name"
+          type: "string"
+          required: true
+          description: "First name"
+        - name: "last_name"
+          type: "string"
+          required: true
+          description: "Last name"
+        - name: "role_id"
+          type: "int"
+          required: false
+          description: "Role ID"
+        - name: "is_active"
+          type: "boolean"
+          required: true
+          description: "Whether user is active"
+        - name: "id"
+          type: "int"
+          required: true
+          description: "User ID to update"
+      tags: ["users", "update", "modify"]
+      sql_file: "users.sql"
+      
+    delete_user:
+      description: "Delete a user"
+      category: "users"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "User ID to delete"
+      tags: ["users", "delete", "remove"]
+      sql_file: "users.sql"
+      
+    list_users:
+      description: "List users with pagination and role information"
+      category: "users"
+      operation: "select"
+      parameters:
+        - name: "limit"
+          type: "int"
+          required: true
+          description: "Maximum number of results"
+        - name: "offset"
+          type: "int"
+          required: true
+          description: "Number of results to skip"
+      tags: ["users", "list", "pagination"]
+      sql_file: "users.sql"
+      
+    get_user_count:
+      description: "Get total number of users"
+      category: "users"
+      operation: "select"
+      parameters: []
+      tags: ["users", "count", "statistics"]
+      sql_file: "users.sql"
+      
+    create_user_session:
+      description: "Create a new user session"
+      category: "users"
+      operation: "insert"
+      parameters:
+        - name: "user_id"
+          type: "int"
+          required: true
+          description: "User ID"
+        - name: "token_hash"
+          type: "string"
+          required: true
+          description: "Token hash"
+        - name: "expires_at"
+          type: "timestamp"
+          required: true
+          description: "Expiration timestamp"
+      tags: ["users", "sessions", "create"]
+      sql_file: "users.sql"
+      
+    get_user_session:
+      description: "Get user session by token hash"
+      category: "users"
+      operation: "select"
+      parameters:
+        - name: "token_hash"
+          type: "string"
+          required: true
+          description: "Token hash"
+      tags: ["users", "sessions", "by_token"]
+      sql_file: "users.sql"
+      
+    revoke_user_session:
+      description: "Revoke a user session"
+      category: "users"
+      operation: "update"
+      parameters:
+        - name: "token_hash"
+          type: "string"
+          required: true
+          description: "Token hash"
+      tags: ["users", "sessions", "revoke"]
+      sql_file: "users.sql"
+      
+    cleanup_expired_sessions:
+      description: "Clean up expired user sessions"
+      category: "users"
+      operation: "delete"
+      parameters: []
+      tags: ["users", "sessions", "cleanup"]
+      sql_file: "users.sql"
+      
+    get_user_roles:
+      description: "Get all roles for a user"
+      category: "users"
+      operation: "select"
+      parameters:
+        - name: "user_id"
+          type: "int"
+          required: true
+          description: "User ID"
+      tags: ["users", "roles", "relationships"]
+      sql_file: "users.sql"
+      
+    assign_role_to_user:
+      description: "Assign a role to a user"
+      category: "users"
+      operation: "insert"
+      parameters:
+        - name: "user_id"
+          type: "int"
+          required: true
+          description: "User ID"
+        - name: "role_id"
+          type: "int"
+          required: true
+          description: "Role ID"
+      tags: ["users", "roles", "assign"]
+      sql_file: "users.sql"
+      
+    remove_role_from_user:
+      description: "Remove a role from a user"
+      category: "users"
+      operation: "delete"
+      parameters:
+        - name: "user_id"
+          type: "int"
+          required: true
+          description: "User ID"
+        - name: "role_id"
+          type: "int"
+          required: true
+          description: "Role ID"
+      tags: ["users", "roles", "remove"]
+      sql_file: "users.sql"
+
+  # Role-related queries
+  roles:
+    create_role:
+      description: "Create a new role"
+      category: "roles"
+      operation: "insert"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Role name"
+        - name: "description"
+          type: "string"
+          required: true
+          description: "Role description"
+      tags: ["roles", "create", "insert"]
+      sql_file: "roles.sql"
+      
+    get_role_by_id:
+      description: "Get role by ID"
+      category: "roles"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Role ID"
+      tags: ["roles", "single", "by_id"]
+      sql_file: "roles.sql"
+      
+    get_role_by_name:
+      description: "Get role by name"
+      category: "roles"
+      operation: "select"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Role name"
+      tags: ["roles", "single", "by_name"]
+      sql_file: "roles.sql"
+      
+    update_role:
+      description: "Update role information"
+      category: "roles"
+      operation: "update"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Role name"
+        - name: "description"
+          type: "string"
+          required: true
+          description: "Role description"
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Role ID to update"
+      tags: ["roles", "update", "modify"]
+      sql_file: "roles.sql"
+      
+    delete_role:
+      description: "Delete a role"
+      category: "roles"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "Role ID to delete"
+      tags: ["roles", "delete", "remove"]
+      sql_file: "roles.sql"
+      
+    list_roles:
+      description: "List all roles"
+      category: "roles"
+      operation: "select"
+      parameters: []
+      tags: ["roles", "list", "all"]
+      sql_file: "roles.sql"

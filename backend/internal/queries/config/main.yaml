@@ -1,0 +1,58 @@
+# Main Query Configuration
+# This file defines the main configuration and references domain-specific files
+
+# Global settings
+settings:
+  default_sql_directory: "."
+  enable_query_validation: true
+  enable_parameter_validation: true
+  cache_queries: true
+
+# Query categories for organization
+categories:
+  employees:
+    description: "Employee-related queries"
+    color: "#3498db"
+    
+  skills:
+    description: "Skill-related queries"
+    color: "#2ecc71"
+    
+  api_keys:
+    description: "API key-related queries"
+    color: "#e74c3c"
+    
+  ai_agents:
+    description: "AI agent-related queries"
+    color: "#9b59b6"
+    
+  users:
+    description: "User-related queries"
+    color: "#1abc9c"
+    
+  roles:
+    description: "Role-related queries"
+    color: "#e67e22"
+    
+  uploaded_files:
+    description: "Uploaded file-related queries"
+    color: "#34495e"
+    
+  matches:
+    description: "Match-related queries"
+    color: "#f39c12"
+
+# Domain-specific configuration files
+domains:
+  - file: "employees.yaml"
+    description: "Employee and skill management queries"
+  - file: "api_keys.yaml"
+    description: "API key management queries"
+  - file: "ai_agents.yaml"
+    description: "AI agent processing queries"
+  - file: "users.yaml"
+    description: "User and role management queries"
+  - file: "uploaded_files.yaml"
+    description: "File upload and management queries"
+  - file: "matches.yaml"
+    description: "Employee matching queries"

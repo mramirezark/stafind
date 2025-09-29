@@ -26,21 +26,6 @@ func (h *DashboardHandlers) GetDashboardStats(c *fiber.Ctx) error {
 	return c.JSON(stats)
 }
 
-// GetRecentJobRequests returns recent job requests
-func (h *DashboardHandlers) GetRecentJobRequests(c *fiber.Ctx) error {
-	limitStr := c.Query("limit", "5")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		limit = 5
-	}
-
-	jobRequests, err := h.dashboardService.GetRecentJobRequests(limit)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-	return c.JSON(jobRequests)
-}
-
 // GetRecentEmployees returns recent employees
 func (h *DashboardHandlers) GetRecentEmployees(c *fiber.Ctx) error {
 	limitStr := c.Query("limit", "5")
@@ -72,4 +57,28 @@ func (h *DashboardHandlers) GetSkillDemandStats(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(stats)
+}
+
+// GetTopSuggestedEmployees returns top suggested employees
+func (h *DashboardHandlers) GetTopSuggestedEmployees(c *fiber.Ctx) error {
+	limitStr := c.Query("limit", "5")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 5
+	}
+
+	employees, err := h.dashboardService.GetTopSuggestedEmployees(limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(employees)
+}
+
+// GetDashboardMetrics returns comprehensive dashboard metrics
+func (h *DashboardHandlers) GetDashboardMetrics(c *fiber.Ctx) error {
+	metrics, err := h.dashboardService.GetDashboardMetrics()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(metrics)
 }

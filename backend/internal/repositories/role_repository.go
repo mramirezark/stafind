@@ -36,11 +36,7 @@ func NewRoleRepository(db *sql.DB) (RoleRepository, error) {
 
 // CreateRole creates a new role
 func (r *roleRepository) CreateRole(role *models.Role) error {
-	query := `
-		INSERT INTO roles (name, description)
-		VALUES ($1, $2)
-		RETURNING id, created_at, updated_at
-	`
+	query := r.MustGetQuery("create_role")
 
 	err := r.db.QueryRow(query, role.Name, role.Description).Scan(&role.ID, &role.CreatedAt, &role.UpdatedAt)
 	return err
@@ -48,11 +44,7 @@ func (r *roleRepository) CreateRole(role *models.Role) error {
 
 // GetRoleByID retrieves a role by ID
 func (r *roleRepository) GetRoleByID(id int) (*models.Role, error) {
-	query := `
-		SELECT id, name, description, created_at, updated_at
-		FROM roles
-		WHERE id = $1
-	`
+	query := r.MustGetQuery("get_role_by_id")
 
 	role := &models.Role{}
 	err := r.db.QueryRow(query, id).Scan(
@@ -68,11 +60,7 @@ func (r *roleRepository) GetRoleByID(id int) (*models.Role, error) {
 
 // GetRoleByName retrieves a role by name
 func (r *roleRepository) GetRoleByName(name string) (*models.Role, error) {
-	query := `
-		SELECT id, name, description, created_at, updated_at
-		FROM roles
-		WHERE name = $1
-	`
+	query := r.MustGetQuery("get_role_by_name")
 
 	role := &models.Role{}
 	err := r.db.QueryRow(query, name).Scan(
@@ -88,11 +76,7 @@ func (r *roleRepository) GetRoleByName(name string) (*models.Role, error) {
 
 // UpdateRole updates an existing role
 func (r *roleRepository) UpdateRole(role *models.Role) error {
-	query := `
-		UPDATE roles 
-		SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $3
-	`
+	query := r.MustGetQuery("update_role")
 
 	result, err := r.db.Exec(query, role.Name, role.Description, role.ID)
 	if err != nil {
@@ -113,7 +97,7 @@ func (r *roleRepository) UpdateRole(role *models.Role) error {
 
 // DeleteRole deletes a role by ID
 func (r *roleRepository) DeleteRole(id int) error {
-	query := `DELETE FROM roles WHERE id = $1`
+	query := r.MustGetQuery("delete_role")
 
 	result, err := r.db.Exec(query, id)
 	if err != nil {
@@ -134,11 +118,7 @@ func (r *roleRepository) DeleteRole(id int) error {
 
 // ListRoles retrieves all roles
 func (r *roleRepository) ListRoles() ([]*models.Role, error) {
-	query := `
-		SELECT id, name, description, created_at, updated_at
-		FROM roles
-		ORDER BY name
-	`
+	query := r.MustGetQuery("list_roles")
 
 	rows, err := r.db.Query(query)
 	if err != nil {

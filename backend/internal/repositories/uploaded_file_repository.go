@@ -3,6 +3,7 @@ package repositories
 import (
 	"database/sql"
 	"fmt"
+	"stafind-backend/internal/constants"
 	"stafind-backend/internal/models"
 	"time"
 )
@@ -37,22 +38,26 @@ type FileListFilters struct {
 }
 
 type uploadedFileRepository struct {
+	*BaseRepository
 	db *sql.DB
 }
 
 // NewUploadedFileRepository creates a new uploaded file repository
-func NewUploadedFileRepository(db *sql.DB) UploadedFileRepository {
-	return &uploadedFileRepository{db: db}
+func NewUploadedFileRepository(db *sql.DB) (UploadedFileRepository, error) {
+	baseRepo, err := NewBaseRepository(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &uploadedFileRepository{
+		BaseRepository: baseRepo,
+		db:             db,
+	}, nil
 }
 
 // Create creates a new uploaded file record
 func (r *uploadedFileRepository) Create(file models.UploadedFileCreate) (*models.UploadedFile, error) {
-	query := `
-		INSERT INTO uploaded_files (
-			filename, original_filename, file_path, file_size, content_type,
-			file_hash, upload_type, status, uploaded_by, employee_id, metadata
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-		RETURNING id, created_at, updated_at`
+	query := r.MustGetQuery("create_uploaded_file")
 
 	var uploadedFile models.UploadedFile
 	err := r.db.QueryRow(
@@ -96,12 +101,7 @@ func (r *uploadedFileRepository) Create(file models.UploadedFileCreate) (*models
 
 // GetByID retrieves an uploaded file by ID
 func (r *uploadedFileRepository) GetByID(id int) (*models.UploadedFile, error) {
-	query := `
-		SELECT id, filename, original_filename, file_path, file_size, content_type,
-		       file_hash, upload_type, status, uploaded_by, employee_id, metadata,
-		       created_at, updated_at, deleted_at
-		FROM uploaded_files
-		WHERE id = $1 AND deleted_at IS NULL`
+	query := r.MustGetQuery("get_uploaded_file_by_id")
 
 	var file models.UploadedFile
 	err := r.db.QueryRow(query, id).Scan(
@@ -134,12 +134,7 @@ func (r *uploadedFileRepository) GetByID(id int) (*models.UploadedFile, error) {
 
 // GetByFilename retrieves an uploaded file by filename
 func (r *uploadedFileRepository) GetByFilename(filename string) (*models.UploadedFile, error) {
-	query := `
-		SELECT id, filename, original_filename, file_path, file_size, content_type,
-		       file_hash, upload_type, status, uploaded_by, employee_id, metadata,
-		       created_at, updated_at, deleted_at
-		FROM uploaded_files
-		WHERE filename = $1 AND deleted_at IS NULL`
+	query := r.MustGetQuery("get_uploaded_file_by_filename")
 
 	var file models.UploadedFile
 	err := r.db.QueryRow(query, filename).Scan(
@@ -172,12 +167,7 @@ func (r *uploadedFileRepository) GetByFilename(filename string) (*models.Uploade
 
 // GetByHash retrieves an uploaded file by file hash
 func (r *uploadedFileRepository) GetByHash(hash string) (*models.UploadedFile, error) {
-	query := `
-		SELECT id, filename, original_filename, file_path, file_size, content_type,
-		       file_hash, upload_type, status, uploaded_by, employee_id, metadata,
-		       created_at, updated_at, deleted_at
-		FROM uploaded_files
-		WHERE file_hash = $1 AND deleted_at IS NULL`
+	query := r.MustGetQuery("get_uploaded_file_by_hash")
 
 	var file models.UploadedFile
 	err := r.db.QueryRow(query, hash).Scan(
@@ -299,7 +289,7 @@ func (r *uploadedFileRepository) Update(id int, file models.UploadedFileUpdate) 
 
 // Delete permanently deletes an uploaded file record
 func (r *uploadedFileRepository) Delete(id int) error {
-	query := `DELETE FROM uploaded_files WHERE id = $1`
+	query := r.MustGetQuery("delete_uploaded_file")
 	result, err := r.db.Exec(query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete uploaded file: %w", err)
@@ -319,10 +309,7 @@ func (r *uploadedFileRepository) Delete(id int) error {
 
 // SoftDelete soft deletes an uploaded file
 func (r *uploadedFileRepository) SoftDelete(id int) error {
-	query := `
-		UPDATE uploaded_files 
-		SET status = 'deleted', deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND deleted_at IS NULL`
+	query := r.MustGetQuery("soft_delete_uploaded_file")
 
 	result, err := r.db.Exec(query, id)
 	if err != nil {
@@ -406,7 +393,7 @@ func (r *uploadedFileRepository) List(filters FileListFilters) ([]models.Uploade
 	}
 
 	// Build LIMIT and OFFSET
-	limit := 20 // default page size
+	limit := constants.DefaultFilePageSize // default page size
 	if filters.PageSize > 0 {
 		limit = filters.PageSize
 	}
@@ -521,7 +508,7 @@ func (r *uploadedFileRepository) GetStats() (*models.FileUploadStats, error) {
 
 	// Get recent uploads (last 10)
 	recentFiles, _, err := r.List(FileListFilters{
-		PageSize:  10,
+		PageSize:  constants.DefaultPageSize,
 		SortBy:    "created_at",
 		SortOrder: "desc",
 	})
@@ -537,7 +524,7 @@ func (r *uploadedFileRepository) GetStats() (*models.FileUploadStats, error) {
 func (r *uploadedFileRepository) GetByEmployeeID(employeeID int) ([]models.UploadedFile, error) {
 	files, _, err := r.List(FileListFilters{
 		EmployeeID: &employeeID,
-		PageSize:   1000, // Get all files for the employee
+		PageSize:   constants.MaxFilePageSize, // Get all files for the employee
 	})
 	return files, err
 }
@@ -546,14 +533,14 @@ func (r *uploadedFileRepository) GetByEmployeeID(employeeID int) ([]models.Uploa
 func (r *uploadedFileRepository) GetByUploadType(uploadType string) ([]models.UploadedFile, error) {
 	files, _, err := r.List(FileListFilters{
 		UploadType: &uploadType,
-		PageSize:   1000, // Get all files of this type
+		PageSize:   constants.MaxFilePageSize, // Get all files of this type
 	})
 	return files, err
 }
 
 // CleanupOldFiles removes old deleted files
 func (r *uploadedFileRepository) CleanupOldFiles(olderThan time.Time) (int64, error) {
-	query := `DELETE FROM uploaded_files WHERE deleted_at IS NOT NULL AND deleted_at < $1`
+	query := r.MustGetQuery("cleanup_old_files")
 	result, err := r.db.Exec(query, olderThan)
 	if err != nil {
 		return 0, fmt.Errorf("failed to cleanup old files: %w", err)

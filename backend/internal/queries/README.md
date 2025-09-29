@@ -4,21 +4,7 @@ This package provides multiple approaches for managing SQL queries in the applic
 
 ## Approaches Implemented
 
-### 1. Query Constants (`queries.go`)
-All SQL queries are defined as constants in a single file, making them easy to find and maintain.
-
-**Pros:**
-- Simple and straightforward
-- All queries in one place
-- Type-safe constants
-- Easy to refactor
-
-**Cons:**
-- Can become large with many queries
-- No syntax highlighting for SQL
-- Harder to organize by domain
-
-### 2. YAML Configuration (`config.yaml` + `yaml_manager.go`) ⭐ **RECOMMENDED**
+### 1. YAML Configuration (`config.yaml` + `yaml_manager.go`) ⭐ **RECOMMENDED**
 SQL queries are organized using YAML configuration files with rich metadata, categories, and parameter definitions.
 
 **Pros:**
@@ -33,7 +19,7 @@ SQL queries are organized using YAML configuration files with rich metadata, cat
 - More complex setup
 - Requires YAML parsing
 
-### 3. SQL Files with Embed (`*.sql` files + `manager.go`)
+### 2. SQL Files with Embed (`*.sql` files + `manager.go`)
 SQL queries are stored in separate `.sql` files and embedded into the binary using Go's `embed` package.
 
 **Pros:**
@@ -47,30 +33,8 @@ SQL queries are stored in separate `.sql` files and embedded into the binary usi
 - More complex setup
 - Requires Go 1.16+ for embed
 
-### 4. Query Builder (`builder.go`)
-Provides a fluent interface for building dynamic SQL queries programmatically.
-
-**Pros:**
-- Dynamic query building
-- Type-safe query construction
-- Reusable components
-- Good for complex conditional queries
-
-**Cons:**
-- More complex for simple queries
-- Requires learning the API
-- Can be overkill for static queries
 
 ## Usage Examples
-
-### Using Query Constants
-```go
-// In repository
-func (r *engineerRepository) GetAll() ([]models.Engineer, error) {
-    rows, err := r.db.Query(queries.GetAllEngineers)
-    // ... handle results
-}
-```
 
 ### Using YAML Query Manager
 ```go
@@ -178,9 +142,7 @@ settings:
 
 1. **Choose the right approach** for your needs:
    - **YAML Configuration**: Best for production applications with rich metadata needs
-   - Use constants for simple, static queries
    - Use SQL files for better organization and syntax highlighting
-   - Use query builder for dynamic queries
 
 2. **Naming conventions**:
    - Use descriptive names: `GetAllEngineers`, `CreateJobRequest`

@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed config.yaml *.sql
+//go:embed config/*.yaml *.sql
 var yamlQueryFiles embed.FS
 
 // QueryConfig represents the structure of the YAML configuration
@@ -16,6 +16,13 @@ type QueryConfig struct {
 	Queries    map[string]map[string]QueryDefinition `yaml:"queries"`
 	Categories map[string]CategoryDefinition         `yaml:"categories"`
 	Settings   SettingsDefinition                    `yaml:"settings"`
+	Domains    []DomainDefinition                    `yaml:"domains,omitempty"`
+}
+
+// DomainDefinition represents a domain configuration file
+type DomainDefinition struct {
+	File        string `yaml:"file"`
+	Description string `yaml:"description"`
 }
 
 // QueryDefinition represents a single query configuration
@@ -61,22 +68,28 @@ type YAMLQueryManager struct {
 
 // NewYAMLQueryManager creates a new YAML-based query manager
 func NewYAMLQueryManager() (*YAMLQueryManager, error) {
-	// Load YAML configuration
-	configData, err := yamlQueryFiles.ReadFile("config.yaml")
+	// Load main configuration
+	configData, err := yamlQueryFiles.ReadFile("config/main.yaml")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config.yaml: %w", err)
+		return nil, fmt.Errorf("failed to read config/main.yaml: %w", err)
 	}
 
-	var config QueryConfig
-	if err := yaml.Unmarshal(configData, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config.yaml: %w", err)
+	var mainConfig QueryConfig
+	if err := yaml.Unmarshal(configData, &mainConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse config/main.yaml: %w", err)
 	}
 
+	// Initialize the query manager with main config
 	qm := &YAMLQueryManager{
-		config:     &config,
+		config:     &mainConfig,
 		queries:    make(map[string]string),
-		categories: config.Categories,
-		settings:   config.Settings,
+		categories: mainConfig.Categories,
+		settings:   mainConfig.Settings,
+	}
+
+	// Load domain-specific configuration files
+	if err := qm.loadDomainConfigs(); err != nil {
+		return nil, fmt.Errorf("failed to load domain configs: %w", err)
 	}
 
 	// Load all SQL files and map them to query names
@@ -119,6 +132,46 @@ func (qm *YAMLQueryManager) loadSQLQueries() error {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
 			if err := qm.parseSQLFile(entry.Name(), sqlFiles[entry.Name()]); err != nil {
 				return fmt.Errorf("failed to parse SQL file %s: %w", entry.Name(), err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// loadDomainConfigs loads domain-specific configuration files
+func (qm *YAMLQueryManager) loadDomainConfigs() error {
+	// Get all YAML files in the config directory
+	entries, err := yamlQueryFiles.ReadDir("config")
+	if err != nil {
+		return err
+	}
+
+	// Load each domain configuration file
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".yaml") && entry.Name() != "main.yaml" {
+			configPath := "config/" + entry.Name()
+			configData, err := yamlQueryFiles.ReadFile(configPath)
+			if err != nil {
+				return fmt.Errorf("failed to read %s: %w", configPath, err)
+			}
+
+			var domainConfig QueryConfig
+			if err := yaml.Unmarshal(configData, &domainConfig); err != nil {
+				return fmt.Errorf("failed to parse %s: %w", configPath, err)
+			}
+
+			// Merge queries from domain config into main config
+			for category, queries := range domainConfig.Queries {
+				if qm.config.Queries == nil {
+					qm.config.Queries = make(map[string]map[string]QueryDefinition)
+				}
+				if qm.config.Queries[category] == nil {
+					qm.config.Queries[category] = make(map[string]QueryDefinition)
+				}
+				for queryName, queryDef := range queries {
+					qm.config.Queries[category][queryName] = queryDef
+				}
 			}
 		}
 	}

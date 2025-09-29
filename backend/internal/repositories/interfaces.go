@@ -16,15 +16,6 @@ type EmployeeRepository interface {
 	RemoveSkills(employeeID int) error
 }
 
-// JobRequestRepository defines the interface for job request data operations
-type JobRequestRepository interface {
-	GetAll() ([]models.JobRequest, error)
-	GetByID(id int) (*models.JobRequest, error)
-	Create(req *models.CreateJobRequestRequest) (*models.JobRequest, error)
-	Update(id int, req *models.CreateJobRequestRequest) (*models.JobRequest, error)
-	Delete(id int) error
-}
-
 // SkillRepository defines the interface for skill data operations
 type SkillRepository interface {
 	GetAll() ([]models.Skill, error)
@@ -37,7 +28,31 @@ type SkillRepository interface {
 
 // MatchRepository defines the interface for match data operations
 type MatchRepository interface {
-	GetByJobRequestID(jobRequestID int) ([]models.Match, error)
 	Create(match *models.Match) (*models.Match, error)
-	DeleteByJobRequestID(jobRequestID int) error
+	GetByEmployeeID(employeeID int) ([]models.Match, error)
+	GetAll() ([]models.Match, error)
+	Delete(id int) error
+}
+
+// AIAgentRepository defines the interface for AI agent data operations
+type AIAgentRepository interface {
+	Create(req *models.AIAgentRequest) (*models.AIAgentRequest, error)
+	GetByID(id int) (*models.AIAgentRequest, error)
+	GetByTeamsMessageID(teamsMessageID string) (*models.AIAgentRequest, error)
+	Update(id int, req *models.AIAgentRequest) error
+	GetAll(limit int, offset int) ([]models.AIAgentRequest, error)
+	SaveResponse(response *models.AIAgentResponse) error
+	GetResponseByRequestID(requestID int) (*models.AIAgentResponse, error)
+}
+
+// APIKeyRepository defines the interface for API key data operations
+type APIKeyRepository interface {
+	Create(key *models.APIKey) (*models.APIKey, error)
+	GetByID(id int) (*models.APIKey, error)
+	GetByHash(hash string) (*models.APIKey, error)
+	GetAll(limit, offset int) ([]models.APIKey, error)
+	Update(id int, key *models.APIKey) error
+	Deactivate(id int) error
+	UpdateLastUsed(hash string) error
+	Delete(id int) error
 }
