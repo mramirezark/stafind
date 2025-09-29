@@ -3,16 +3,16 @@
 queries:
   # Match-related queries
   matches:
-    get_matches_by_job_request:
-      description: "Get all matches for a specific job request"
+    get_matches_by_employee_id:
+      description: "Get all matches for a specific employee"
       category: "matches"
       operation: "select"
       parameters:
-        - name: "job_request_id"
+        - name: "employee_id"
           type: "int"
           required: true
-          description: "Job request ID"
-      tags: ["matches", "job_requests", "relationships"]
+          description: "Employee ID"
+      tags: ["matches", "employees", "relationships"]
       sql_file: "matches.sql"
       
     create_match:
@@ -20,14 +20,10 @@ queries:
       category: "matches"
       operation: "insert"
       parameters:
-        - name: "job_request_id"
+        - name: "employee_id"
           type: "int"
           required: true
-          description: "Job request ID"
-        - name: "engineer_id"
-          type: "int"
-          required: true
-          description: "Engineer ID"
+          description: "Employee ID"
         - name: "match_score"
           type: "float"
           required: true
@@ -43,15 +39,15 @@ queries:
       tags: ["matches", "create", "insert"]
       sql_file: "matches.sql"
       
-    delete_matches_by_job_request:
-      description: "Delete all matches for a job request"
+    delete_matches_by_employee_id:
+      description: "Delete all matches for an employee"
       category: "matches"
       operation: "delete"
       parameters:
-        - name: "job_request_id"
+        - name: "employee_id"
           type: "int"
           required: true
-          description: "Job request ID"
+          description: "Employee ID"
       tags: ["matches", "delete", "cleanup"]
       sql_file: "matches.sql"
       

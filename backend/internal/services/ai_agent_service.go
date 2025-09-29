@@ -14,6 +14,7 @@ type aiAgentService struct {
 	aiAgentRepo         repositories.AIAgentRepository
 	employeeRepo        repositories.EmployeeRepository
 	skillRepo           repositories.SkillRepository
+	matchRepo           repositories.MatchRepository
 	matchEngine         *matching.MatchEngine
 	notificationService NotificationService
 	nerService          *NERService
@@ -24,12 +25,14 @@ func NewAIAgentService(
 	aiAgentRepo repositories.AIAgentRepository,
 	employeeRepo repositories.EmployeeRepository,
 	skillRepo repositories.SkillRepository,
+	matchRepo repositories.MatchRepository,
 	notificationService NotificationService,
 ) AIAgentService {
 	return &aiAgentService{
 		aiAgentRepo:         aiAgentRepo,
 		employeeRepo:        employeeRepo,
 		skillRepo:           skillRepo,
+		matchRepo:           matchRepo,
 		matchEngine:         matching.NewMatchEngine(),
 		notificationService: notificationService,
 		nerService:          NewNERService(),
@@ -146,6 +149,15 @@ func (s *aiAgentService) ProcessAIAgentRequest(id int) (*models.AIAgentResponse,
 		}
 		s.notificationService.LogError(id, *request.Error)
 		return nil, err
+	}
+
+	// Save matches to database
+	for _, match := range matches {
+		_, err := s.matchRepo.Create(&match)
+		if err != nil {
+			// Log error but don't fail the request
+			s.notificationService.LogError(id, fmt.Sprintf("Failed to save match for employee %d: %v", match.EmployeeID, err))
+		}
 	}
 
 	// Generate explanations for matches

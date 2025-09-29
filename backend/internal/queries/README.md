@@ -2,9 +2,9 @@
 
 This package provides multiple approaches for managing SQL queries in the application, eliminating hardcoded queries from repository code.
 
-## Approaches Implemented
+## Query Management System
 
-### 1. YAML Configuration (`config.yaml` + `yaml_manager.go`) ⭐ **RECOMMENDED**
+### YAML Configuration (`config.yaml` + `yaml_manager.go`)
 SQL queries are organized using YAML configuration files with rich metadata, categories, and parameter definitions.
 
 **Pros:**
@@ -19,19 +19,6 @@ SQL queries are organized using YAML configuration files with rich metadata, cat
 - More complex setup
 - Requires YAML parsing
 
-### 2. SQL Files with Embed (`*.sql` files + `manager.go`)
-SQL queries are stored in separate `.sql` files and embedded into the binary using Go's `embed` package.
-
-**Pros:**
-- SQL syntax highlighting in IDEs
-- Better organization by domain
-- Can be version controlled separately
-- Embedded into binary (no external files needed)
-- Query validation at startup
-
-**Cons:**
-- More complex setup
-- Requires Go 1.16+ for embed
 
 
 ## Usage Examples
@@ -142,7 +129,6 @@ settings:
 
 1. **Choose the right approach** for your needs:
    - **YAML Configuration**: Best for production applications with rich metadata needs
-   - Use SQL files for better organization and syntax highlighting
 
 2. **Naming conventions**:
    - Use descriptive names: `GetAllEngineers`, `CreateJobRequest`

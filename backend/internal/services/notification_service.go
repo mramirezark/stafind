@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/smtp"
 	"os"
 	"stafind-backend/internal/constants"
 	"stafind-backend/internal/repositories"
@@ -67,37 +66,15 @@ func (s *notificationService) SendTeamsMessage(channelID string, message string)
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Teams webhook failed: %s", string(body))
+		return fmt.Errorf("teams webhook failed: %s", string(body))
 	}
 
 	return nil
 }
 
 func (s *notificationService) SendAdminEmail(subject string, body string) error {
-	// Get email configuration from environment
-	smtpHost := os.Getenv(constants.EnvSMTPHost)
-	smtpPort := os.Getenv(constants.EnvSMTPPort)
-	smtpUser := os.Getenv(constants.EnvSMTPUser)
-	smtpPass := os.Getenv(constants.EnvSMTPPass)
-	adminEmail := os.Getenv(constants.EnvAdminEmail)
-
-	if smtpHost == "" || smtpPort == "" || smtpUser == "" || smtpPass == "" || adminEmail == "" {
-		return fmt.Errorf("email configuration not complete")
-	}
-
-	// Create email message
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
-		smtpUser, adminEmail, subject, body)
-
-	// Send email
-	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
-	addr := fmt.Sprintf("%s:%s", smtpHost, smtpPort)
-
-	err := smtp.SendMail(addr, auth, smtpUser, []string{adminEmail}, []byte(msg))
-	if err != nil {
-		return err
-	}
-
+	// Email sending disabled for now - just log the notification
+	fmt.Printf("EMAIL NOTIFICATION (DISABLED):\nSubject: %s\nBody: %s\n\n", subject, body)
 	return nil
 }
 

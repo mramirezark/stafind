@@ -323,3 +323,32 @@ var SkillAbbreviationMap = map[string][]string{
 	"db":  {"database"},
 	"sql": {"postgresql", "mysql", "database"},
 }
+
+// Query Management Constants
+const (
+	// File extensions
+	SQLExtension = ".sql"
+
+	// Error messages
+	MsgQueryNotFound          = "query '%s' not found"
+	MsgRequiredQueryNotFound  = "Required query '%s' not found: %v"
+	MsgFailedToReadQueryDir   = "failed to read query directory"
+	MsgFailedToReadQueryFile  = "failed to read query file %s"
+	MsgMissingRequiredQueries = "missing required queries: %s"
+)
+
+// Required query names for validation
+var RequiredQueries = []string{
+	"get_all_employees",
+	"get_employee_by_id",
+	"create_employee",
+	"update_employee",
+	"delete_employee",
+	"get_employee_skills",
+	"get_all_skills",
+	"get_skill_by_id",
+	"get_skill_by_name",
+	"create_skill",
+	"update_skill",
+	"delete_skill",
+}
