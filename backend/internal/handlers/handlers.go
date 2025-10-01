@@ -15,6 +15,7 @@ type Handlers struct {
 	skillService    services.SkillService
 	AIAgentHandlers *AIAgentHandlers
 	NERHandlers     *NERHandlers
+	LlamaAIHandlers *LlamaAIHandlers
 }
 
 func NewHandlers(
@@ -23,6 +24,7 @@ func NewHandlers(
 	skillService services.SkillService,
 	aiAgentService services.AIAgentService,
 	nerService *services.NERService,
+	llamaAIService services.LlamaAIService,
 ) *Handlers {
 	return &Handlers{
 		employeeService: employeeService,
@@ -30,6 +32,7 @@ func NewHandlers(
 		skillService:    skillService,
 		AIAgentHandlers: NewAIAgentHandlers(aiAgentService),
 		NERHandlers:     NewNERHandlers(nerService, searchService),
+		LlamaAIHandlers: NewLlamaAIHandlers(llamaAIService),
 	}
 }
 

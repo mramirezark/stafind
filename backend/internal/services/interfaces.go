@@ -64,3 +64,9 @@ type APIKeyService interface {
 	UpdateLastUsed(key string) error
 	RotateAPIKey(oldKeyID int) (*models.APIKeyResponse, error)
 }
+
+// LlamaAIService defines the interface for Llama AI processing
+type LlamaAIService interface {
+	ProcessText(request *models.LlamaAIRequest) (*models.LlamaAIResponse, error)
+	GetHealthStatus() (string, error)
+}

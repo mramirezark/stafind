@@ -45,8 +45,8 @@ type UploadedFileUpdate struct {
 	Metadata   *string `json:"metadata,omitempty"`
 }
 
-// FileMetadata represents additional metadata for uploaded files
-type FileMetadata struct {
+// UploadedFileMetadata represents additional metadata for uploaded files
+type UploadedFileMetadata struct {
 	ParsedData       *ParsedResumeData `json:"parsed_data,omitempty"`
 	ProcessingStatus string            `json:"processing_status,omitempty"`
 	Error            *string           `json:"error,omitempty"`
@@ -65,14 +65,6 @@ type ParsedResumeData struct {
 	Bio         *string          `json:"bio,omitempty"`
 	Education   []string         `json:"education,omitempty"`
 	WorkHistory []WorkExperience `json:"work_history,omitempty"`
-}
-
-// WorkExperience represents work experience from parsed resume
-type WorkExperience struct {
-	Company     string  `json:"company"`
-	Position    string  `json:"position"`
-	Duration    string  `json:"duration"`
-	Description *string `json:"description,omitempty"`
 }
 
 // FileUploadStats represents statistics about file uploads

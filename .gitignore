@@ -374,7 +374,7 @@ env.local
 docker.env
 
 # Go binary
-server
+/server
 
 # Next.js build artifacts
 .next/

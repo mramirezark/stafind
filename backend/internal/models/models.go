@@ -35,6 +35,248 @@ type EmployeeSkill struct {
 	Skill            Skill   `json:"skill,omitempty"`
 }
 
+// ProcessedResumeData represents data extracted from a resume by AI
+type ProcessedResumeData struct {
+	CandidateName       string           `json:"candidate_name"`
+	ContactInfo         ContactInfo      `json:"contact_info"`
+	SeniorityLevel      string           `json:"seniority_level"`
+	YearsExperience     string           `json:"years_experience"`
+	CurrentRole         string           `json:"current_role"`
+	Skills              ResumeSkills     `json:"skills"`
+	Experience          []WorkExperience `json:"experience"`
+	Projects            []Project        `json:"projects"`
+	Education           []Education      `json:"education"`
+	Certifications      []string         `json:"certifications"`
+	ProfessionalSummary string           `json:"professional_summary"`
+	FileMetadata        FileMetadata     `json:"file_metadata"`
+	ProcessingTimestamp string           `json:"processing_timestamp"`
+}
+
+// ContactInfo represents contact information
+type ContactInfo struct {
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Location string `json:"location"`
+}
+
+// ResumeSkills represents skills extracted from resume
+type ResumeSkills struct {
+	Technical  []string `json:"technical"`
+	Soft       []string `json:"soft"`
+	Languages  []string `json:"languages"`
+	Tools      []string `json:"tools"`
+	Frameworks []string `json:"frameworks"`
+}
+
+// WorkExperience represents work experience entry
+type WorkExperience struct {
+	Company     string `json:"company"`
+	Role        string `json:"role"`
+	Duration    string `json:"duration"`
+	Years       string `json:"years"`
+	Description string `json:"description"`
+}
+
+// Project represents a project entry
+type Project struct {
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	Technologies []string `json:"technologies"`
+	Role         string   `json:"role"`
+	Duration     string   `json:"duration"`
+}
+
+// Education represents education entry
+type Education struct {
+	Institution string `json:"institution"`
+	Degree      string `json:"degree"`
+	Year        string `json:"year"`
+}
+
+// FileMetadata represents file metadata from Google Drive
+type FileMetadata struct {
+	GoogleDriveID string `json:"google_drive_id"`
+	Filename      string `json:"filename"`
+	FileSize      int64  `json:"file_size"`
+	CreatedTime   string `json:"created_time"`
+	ModifiedTime  string `json:"modified_time"`
+	WebViewLink   string `json:"web_view_link"`
+}
+
+// ResumeProcessingResult represents the result of processing resume data
+type ResumeProcessingResult struct {
+	CandidateName       string                      `json:"candidate_name"`
+	EmployeeID          int                         `json:"employee_id"`
+	Action              string                      `json:"action"` // "created" or "updated"
+	Status              string                      `json:"status"`
+	SkillsProcessed     *SkillProcessingResult      `json:"skills_processed"`
+	ExperienceProcessed *ExperienceProcessingResult `json:"experience_processed"`
+	ProjectsProcessed   *ProjectProcessingResult    `json:"projects_processed"`
+	Warnings            []string                    `json:"warnings,omitempty"`
+	ProcessedAt         time.Time                   `json:"processed_at"`
+}
+
+// SkillProcessingResult represents the result of processing skills
+type SkillProcessingResult struct {
+	TotalSkills   int `json:"total_skills"`
+	NewSkills     int `json:"new_skills"`
+	UpdatedSkills int `json:"updated_skills"`
+}
+
+// ExperienceProcessingResult represents the result of processing experience
+type ExperienceProcessingResult struct {
+	TotalEntries     int `json:"total_entries"`
+	ProcessedEntries int `json:"processed_entries"`
+}
+
+// ProjectProcessingResult represents the result of processing projects
+type ProjectProcessingResult struct {
+	TotalProjects     int    `json:"total_projects"`
+	ProcessedProjects int    `json:"processed_projects"`
+	ProjectsSummary   string `json:"projects_summary,omitempty"`
+}
+
+// TeamsSearchResults represents search results from Teams workflow
+type TeamsSearchResults struct {
+	SearchSummary TeamsSearchSummary `json:"search_summary"`
+	Candidates    []CandidateMatch   `json:"candidates"`
+}
+
+// TeamsSearchSummary represents the summary of a Teams search
+type TeamsSearchSummary struct {
+	OriginalRequest     string         `json:"original_request"`
+	TotalFilesProcessed int            `json:"total_files_processed"`
+	MatchingCandidates  int            `json:"matching_candidates"`
+	SearchCriteria      SearchCriteria `json:"search_criteria"`
+	ProcessedAt         string         `json:"processed_at"`
+}
+
+// SearchCriteria represents search criteria from Teams message
+type SearchCriteria struct {
+	Intent             string           `json:"intent"`
+	SkillsRequired     []string         `json:"skills_required"`
+	ExperienceLevel    string           `json:"experience_level"`
+	YearsExperienceMin string           `json:"years_experience_min"`
+	Language           string           `json:"language"`
+	OriginalMessage    string           `json:"original_message"`
+	SearchCriteria     DetailedCriteria `json:"search_criteria"`
+	ResponseSuggestion string           `json:"response_suggestion"`
+	TeamsContext       TeamsContext     `json:"teams_context"`
+}
+
+// DetailedCriteria represents detailed search criteria
+type DetailedCriteria struct {
+	PrimarySkill    string   `json:"primary_skill"`
+	SecondarySkills []string `json:"secondary_skills"`
+	ExperienceFocus string   `json:"experience_focus"`
+	PriorityLevel   string   `json:"priority_level"`
+}
+
+// TeamsContext represents Teams message context
+type TeamsContext struct {
+	UserID      string `json:"user_id"`
+	UserName    string `json:"user_name"`
+	ChannelID   string `json:"channel_id"`
+	ChannelName string `json:"channel_name"`
+	MessageID   string `json:"message_id"`
+	Timestamp   string `json:"timestamp"`
+}
+
+// CandidateMatch represents a candidate match from search
+type CandidateMatch struct {
+	CandidateName   string           `json:"candidate_name"`
+	ContactInfo     ContactInfo      `json:"contact_info"`
+	SeniorityLevel  string           `json:"seniority_level"`
+	YearsExperience string           `json:"years_experience"`
+	CurrentRole     string           `json:"current_role"`
+	Skills          CandidateSkills  `json:"skills"`
+	Experience      []WorkExperience `json:"experience"`
+	Projects        []Project        `json:"projects"`
+	MatchAnalysis   MatchAnalysis    `json:"match_analysis"`
+	FileMetadata    FileMetadata     `json:"file_metadata"`
+	SearchContext   SearchContext    `json:"search_context"`
+}
+
+// CandidateSkills represents skills from candidate match
+type CandidateSkills struct {
+	Technical  []string `json:"technical"`
+	Languages  []string `json:"languages"`
+	Tools      []string `json:"tools"`
+	Frameworks []string `json:"frameworks"`
+}
+
+// MatchAnalysis represents the analysis of candidate match
+type MatchAnalysis struct {
+	MatchesCriteria      bool     `json:"matches_criteria"`
+	MatchScore           string   `json:"match_score"`
+	PrimarySkillMatch    bool     `json:"primary_skill_match"`
+	ExperienceLevelMatch bool     `json:"experience_level_match"`
+	YearsExperienceMatch bool     `json:"years_experience_match"`
+	MatchingSkills       []string `json:"matching_skills"`
+	MissingSkills        []string `json:"missing_skills"`
+	Strengths            []string `json:"strengths"`
+	Recommendation       string   `json:"recommendation"`
+}
+
+// SearchContext represents the context of the search
+type SearchContext struct {
+	OriginalRequest string         `json:"original_request"`
+	SearchCriteria  SearchCriteria `json:"search_criteria"`
+	ProcessedAt     string         `json:"processed_at"`
+}
+
+// SearchProcessingResult represents the result of processing search results
+type SearchProcessingResult struct {
+	SearchID            int                         `json:"search_id"`
+	OriginalRequest     string                      `json:"original_request"`
+	ProcessedAt         time.Time                   `json:"processed_at"`
+	Status              string                      `json:"status"`
+	CandidatesFound     int                         `json:"candidates_found"`
+	FilesProcessed      int                         `json:"files_processed"`
+	CandidatesProcessed []CandidateProcessingResult `json:"candidates_processed"`
+	Insights            SearchInsights              `json:"insights"`
+}
+
+// CandidateProcessingResult represents the result of processing a candidate
+type CandidateProcessingResult struct {
+	CandidateName   string                 `json:"candidate_name"`
+	EmployeeID      int                    `json:"employee_id,omitempty"`
+	Action          string                 `json:"action"` // "created", "found", "error"
+	MatchScore      string                 `json:"match_score"`
+	Status          string                 `json:"status"`
+	SkillsProcessed *SkillProcessingResult `json:"skills_processed,omitempty"`
+	Warnings        []string               `json:"warnings,omitempty"`
+	Error           string                 `json:"error,omitempty"`
+}
+
+// SearchInsights represents insights from search results
+type SearchInsights struct {
+	TotalCandidates   int            `json:"total_candidates"`
+	AverageMatchScore float64        `json:"average_match_score"`
+	TopSkills         map[string]int `json:"top_skills"`
+	ExperienceLevels  map[string]int `json:"experience_levels"`
+	Recommendations   []string       `json:"recommendations"`
+}
+
+// ResourceSearch represents a resource search record
+type ResourceSearch struct {
+	ID                  int       `json:"id" db:"id"`
+	SearchQuery         string    `json:"search_query" db:"search_query"`
+	UserID              string    `json:"user_id" db:"user_id"`
+	UserName            string    `json:"user_name" db:"user_name"`
+	ChannelID           string    `json:"channel_id" db:"channel_id"`
+	ChannelName         string    `json:"channel_name" db:"channel_name"`
+	PrimarySkill        string    `json:"primary_skill" db:"primary_skill"`
+	ExperienceLevel     string    `json:"experience_level" db:"experience_level"`
+	YearsExperienceMin  int       `json:"years_experience_min" db:"years_experience_min"`
+	TotalFilesProcessed int       `json:"total_files_processed" db:"total_files_processed"`
+	CandidatesFound     int       `json:"candidates_found" db:"candidates_found"`
+	SearchResults       string    `json:"search_results" db:"search_results"`
+	Status              string    `json:"status" db:"status"`
+	CreatedAt           time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at" db:"updated_at"`
+}
+
 // Match represents a match between an employee and skills (for AI agent)
 type Match struct {
 	ID             int       `json:"id" db:"id"`
@@ -183,4 +425,93 @@ type SkillExtractionRequest struct {
 type SkillExtractionResponse struct {
 	Skills []string `json:"skills"`
 	Text   string   `json:"text"`
+}
+
+// LlamaAIRequest represents a request to process text with Llama AI
+type LlamaAIRequest struct {
+	Text           string                 `json:"text" binding:"required"`
+	ProcessingType string                 `json:"processing_type" binding:"required"` // candidate_extraction, search_analysis, candidate_matching
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Language       string                 `json:"language,omitempty"`
+	MaxTokens      int                    `json:"max_tokens,omitempty"`
+	Temperature    float64                `json:"temperature,omitempty"`
+}
+
+// LlamaAIResponse represents the response from Llama AI processing
+type LlamaAIResponse struct {
+	ProcessedContent string                 `json:"processed_content"`
+	ProcessingTime   time.Duration          `json:"processing_time"`
+	ModelUsed        string                 `json:"model_used"`
+	TokensProcessed  int                    `json:"tokens_processed"`
+	ProcessingType   string                 `json:"processing_type"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	Timestamp        time.Time              `json:"timestamp"`
+}
+
+// CandidateInfo represents structured candidate information extracted from resume
+type CandidateInfo struct {
+	CandidateName   string          `json:"candidate_name"`
+	ContactInfo     ContactInfo     `json:"contact_info"`
+	SeniorityLevel  string          `json:"seniority_level"`
+	YearsExperience string          `json:"years_experience"`
+	CurrentPosition string          `json:"current_position"`
+	Skills          CandidateSkills `json:"skills"`
+	LastProject     LastProject     `json:"last_project"`
+	Education       Education       `json:"education"`
+	Certifications  []string        `json:"certifications"`
+	Languages       []string        `json:"languages"`
+	Summary         string          `json:"summary"`
+}
+
+// LastProject represents the last project information
+type LastProject struct {
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	Technologies []string `json:"technologies"`
+	Duration     string   `json:"duration"`
+	Role         string   `json:"role"`
+}
+
+// LlamaSearchCriteria represents search criteria extracted from user request using Llama AI
+type LlamaSearchCriteria struct {
+	OriginalRequest    string                `json:"original_request"`
+	Language           string                `json:"language"`
+	SearchCriteria     SearchCriteriaDetails `json:"search_criteria"`
+	PriorityLevel      string                `json:"priority_level"`
+	Urgency            string                `json:"urgency"`
+	ResponseSuggestion string                `json:"response_suggestion"`
+}
+
+// SearchCriteriaDetails represents detailed search criteria
+type SearchCriteriaDetails struct {
+	PrimarySkills      []string `json:"primary_skills"`
+	SecondarySkills    []string `json:"secondary_skills"`
+	Databases          []string `json:"databases"`
+	Frameworks         []string `json:"frameworks"`
+	ExperienceLevel    string   `json:"experience_level"`
+	YearsExperienceMin string   `json:"years_experience_min"`
+	PositionType       []string `json:"position_type"`
+	ProjectFocus       []string `json:"project_focus"`
+}
+
+// CandidateMatchingRequest represents a request to match a candidate with search criteria
+type CandidateMatchingRequest struct {
+	CandidateName  string `json:"candidate_name"`
+	CandidateInfo  string `json:"candidate_info" binding:"required"`
+	SearchCriteria string `json:"search_criteria" binding:"required"`
+	Language       string `json:"language,omitempty"`
+}
+
+// CandidateMatchResult represents the result of candidate matching
+type CandidateMatchResult struct {
+	MatchScore         int      `json:"match_score"`
+	MatchPercentage    string   `json:"match_percentage"`
+	MatchReasoning     string   `json:"match_reasoning"`
+	Strengths          []string `json:"strengths"`
+	Weaknesses         []string `json:"weaknesses"`
+	MissingSkills      []string `json:"missing_skills"`
+	Recommendation     string   `json:"recommendation"`
+	InterviewQuestions []string `json:"interview_questions"`
+	SalaryExpectation  string   `json:"salary_expectation"`
+	Availability       string   `json:"availability"`
 }
