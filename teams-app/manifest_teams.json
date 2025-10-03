@@ -1,0 +1,65 @@
+{
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
+    "version": "1.0.0",
+    "manifestVersion": "1.23",
+    "id": "5834c7ed-b10f-4f51-86ee-e745a4d7344a",
+    "name": {
+      "short": "Test SM Staff",
+      "full": "Test SM Staff Manager"
+    },
+    "developer": {
+      "name": "MindTeams",
+      "websiteUrl": "https://quiet-tanuki-ffe574.netlify.app",
+      "privacyUrl": "https://quiet-tanuki-ffe574.netlify.app/privacy",
+      "termsOfUseUrl": "https://quiet-tanuki-ffe574.netlify.app/terms"
+    },
+    "description": {
+      "short": "Bridges Teams messages to n8n",
+      "full": "A Teams app that captures channel messages and sends them to n8n webhook for processing"
+    },
+    "icons": {
+      "outline": "outline.png",
+      "color": "color.png"
+    },
+    "accentColor": "#ffffff",
+    "bots": [
+      {
+        "botId": "10935c89-ffac-4fa5-9796-cdf404180748",
+        "scopes": [],
+        "isNotificationOnly": false,
+        "supportsCalling": false,
+        "supportsVideo": false,
+        "supportsFiles": false
+      }
+    ],
+    "validDomains": [],
+    "webApplicationInfo": {
+      "id": "cb572e4c-3f2d-4683-8cac-a5574baa38a4"
+    },
+    "authorization": {
+      "permissions": {
+        "resourceSpecific": [
+          {
+            "name": "ChannelMessage.Read.Group",
+            "type": "Application"
+          },
+          {
+            "name": "ChannelMessage.Send.Group",
+            "type": "Application"
+          },
+          {
+            "name": "ChatMessage.Read.Chat",
+            "type": "Application"
+          },
+          {
+            "name": "ChatMessage.Send.Chat",
+            "type": "Application"
+          },
+          {
+            "name": "ChannelSettings.Read.Group",
+            "type": "Application"
+          }
+        ]
+      }
+    }
+  }

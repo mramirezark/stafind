@@ -106,7 +106,7 @@ func (r *matchRepository) getEmployeeSkills(employeeID int) ([]models.Skill, err
 	var skills []models.Skill
 	for rows.Next() {
 		var skill models.Skill
-		err := rows.Scan(&skill.ID, &skill.Name, &skill.Category)
+		err := rows.Scan(&skill.ID, &skill.Name)
 		if err != nil {
 			return nil, err
 		}

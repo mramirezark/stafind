@@ -52,7 +52,47 @@ export interface EmployeeFormData {
 export interface Skill {
   id: number
   name: string
+  categories?: Category[]
+  employee_count?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Category {
+  id: number
+  name: string
+  description?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface SkillWithCount extends Skill {
+  employee_count: number
+}
+
+export interface SkillStats {
+  total_skills: number
+  total_categories: number
+  most_popular_skills: SkillWithCount[]
+  skills_by_category: { category: string; count: number }[]
+  recent_skills: Skill[]
+}
+
+export interface SkillFormData {
+  name: string
+  categories: number[]
+}
+
+export interface CategoryFormData {
+  name: string
+  description?: string
+}
+
+export interface SkillFilters {
+  search: string
   category: string
+  sortBy: 'name' | 'employee_count' | 'created_at'
+  sortOrder: 'asc' | 'desc'
 }
 
 /**

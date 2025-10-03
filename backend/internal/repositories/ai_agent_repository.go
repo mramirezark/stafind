@@ -176,7 +176,7 @@ func (r *aiAgentRepository) Update(id int, req *models.AIAgentRequest) error {
 
 	// Convert extracted skills to PostgreSQL array format using pq.Array
 	var extractedSkillsArray interface{}
-	if req.ExtractedSkills != nil && len(req.ExtractedSkills) > 0 {
+	if len(req.ExtractedSkills) > 0 {
 		extractedSkillsArray = pq.Array(req.ExtractedSkills)
 	} else {
 		// Use NULL for empty arrays to avoid PostgreSQL array literal issues
@@ -192,6 +192,13 @@ func (r *aiAgentRepository) Update(id int, req *models.AIAgentRequest) error {
 		id,
 	)
 
+	return err
+}
+
+func (r *aiAgentRepository) UpdateStatus(id int, status string) error {
+	query := r.MustGetQuery("update_ai_agent_status")
+
+	_, err := r.db.Exec(query, status, id)
 	return err
 }
 

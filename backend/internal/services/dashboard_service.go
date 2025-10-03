@@ -139,7 +139,10 @@ func (s *dashboardService) GetSkillDemandStats() ([]models.SkillDemandStats, err
 		category := "Other"
 		for _, skill := range skills {
 			if skill.Name == skillName {
-				category = skill.Category
+				// Use first category if available, otherwise default
+				if len(skill.Categories) > 0 {
+					category = skill.Categories[0].Name
+				}
 				break
 			}
 		}

@@ -15,6 +15,7 @@ func SetupAllRoutes(
 	dashboardHandlers *handlers.DashboardHandlers,
 	fileUploadHandlers *handlers.FileUploadHandlers,
 	apiKeyHandlers *handlers.APIKeyHandlers,
+	extractionHandlers *handlers.ExtractHandlers,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -37,9 +38,9 @@ func SetupAllRoutes(
 	// Setup route groups in order of priority
 	SetupPublicRoutes(app, h, apiKeyHandlers)
 	SetupAuthRoutes(app, authHandlers)
+	SetupExtractRoutes(app, extractionHandlers)
 	SetupAPIRoutes(app, h, authHandlers, dashboardHandlers, fileUploadHandlers, apiKeyHandlers)
 	SetupAdminRoutes(app, authHandlers, apiKeyHandlers)
-	SetupLlamaAIRoutes(app)
 
 	return app
 }

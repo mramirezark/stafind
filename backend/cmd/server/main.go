@@ -59,6 +59,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to initialize skill repository", "error", err)
 	}
+	categoryRepo, err := repositories.NewCategoryRepository(db.DB)
+	if err != nil {
+		log.Fatal("Failed to initialize category repository", "error", err)
+	}
 
 	userRepo, err := repositories.NewUserRepository(db.DB)
 	if err != nil {
@@ -90,23 +94,26 @@ func main() {
 	// Initialize services
 	employeeService := services.NewEmployeeService(employeeRepo)
 	searchService := services.NewSearchService(employeeRepo)
-	skillService := services.NewSkillService(skillRepo)
+	skillService := services.NewSkillService(skillRepo, employeeRepo)
+	categoryService := services.NewCategoryService(categoryRepo)
 	userService := services.NewUserService(userRepo, roleRepo)
 	roleService := services.NewRoleService(roleRepo)
 	dashboardService := services.NewDashboardService(employeeRepo, skillRepo, aiAgentRepo, matchRepo)
 	uploadedFileService := services.NewUploadedFileService(uploadedFileRepo)
 	notificationService := services.NewNotificationService(aiAgentRepo)
-	aiAgentService := services.NewAIAgentService(aiAgentRepo, employeeRepo, skillRepo, matchRepo, notificationService)
-	nerService := services.NewNERService()
+	aiAgentService := services.NewAIAgentService(aiAgentRepo, employeeRepo, skillRepo, categoryRepo, matchRepo, notificationService)
+	nerService := services.NewNERService(skillRepo, categoryRepo)
 	apiKeyService := services.NewAPIKeyService(apiKeyRepo)
-	llamaAIService := services.NewLlamaAIService()
+	extractionService := services.NewCandidateExtractionService(skillRepo, categoryRepo)
+	candidateStorageService := services.NewCandidateStorageService(employeeRepo, skillRepo)
 
 	// Initialize handlers
-	h := handlers.NewHandlers(employeeService, searchService, skillService, aiAgentService, nerService, llamaAIService)
+	h := handlers.NewHandlers(employeeService, searchService, skillService, categoryService, aiAgentService, nerService)
 	authHandlers := handlers.NewAuthHandlers(userService, roleService)
 	dashboardHandlers := handlers.NewDashboardHandlers(dashboardService)
 	fileUploadHandlers := handlers.NewFileUploadHandlers(uploadedFileService)
 	apiKeyHandlers := handlers.NewAPIKeyHandlers(apiKeyService)
+	extractionHandlers := handlers.NewExtractHandlers(extractionService, aiAgentService, candidateStorageService)
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -115,7 +122,7 @@ func main() {
 	}
 
 	// Setup routes using enhanced structure
-	app := routes.SetupAllRoutes(h, authHandlers, dashboardHandlers, fileUploadHandlers, apiKeyHandlers)
+	app := routes.SetupAllRoutes(h, authHandlers, dashboardHandlers, fileUploadHandlers, apiKeyHandlers, extractionHandlers)
 
 	log.Info("Server starting", "port", port)
 	if err := app.Listen(":" + port); err != nil {

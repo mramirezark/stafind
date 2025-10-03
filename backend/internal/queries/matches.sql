@@ -23,7 +23,7 @@ DELETE FROM matches WHERE employee_id = $1;
 
 -- Get employee skills for match display
 -- Query name: get_employee_skills_for_match
-SELECT s.id, s.name, s.category
+SELECT s.id, s.name
 FROM skills s
 JOIN employee_skills es ON s.id = es.skill_id
 WHERE es.employee_id = $1

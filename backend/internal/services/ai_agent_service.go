@@ -14,10 +14,12 @@ type aiAgentService struct {
 	aiAgentRepo         repositories.AIAgentRepository
 	employeeRepo        repositories.EmployeeRepository
 	skillRepo           repositories.SkillRepository
+	categoryRepo        repositories.CategoryRepository
 	matchRepo           repositories.MatchRepository
 	matchEngine         *matching.MatchEngine
 	notificationService NotificationService
 	nerService          *NERService
+	skillNormalization  map[string]string // Cache for skill normalization
 }
 
 // NewAIAgentService creates a new AI agent service
@@ -25,6 +27,7 @@ func NewAIAgentService(
 	aiAgentRepo repositories.AIAgentRepository,
 	employeeRepo repositories.EmployeeRepository,
 	skillRepo repositories.SkillRepository,
+	categoryRepo repositories.CategoryRepository,
 	matchRepo repositories.MatchRepository,
 	notificationService NotificationService,
 ) AIAgentService {
@@ -32,10 +35,12 @@ func NewAIAgentService(
 		aiAgentRepo:         aiAgentRepo,
 		employeeRepo:        employeeRepo,
 		skillRepo:           skillRepo,
+		categoryRepo:        categoryRepo,
 		matchRepo:           matchRepo,
 		matchEngine:         matching.NewMatchEngine(),
 		notificationService: notificationService,
-		nerService:          NewNERService(),
+		nerService:          NewNERService(skillRepo, categoryRepo),
+		skillNormalization:  constants.SkillNormalizationMap, // Cache normalization map
 	}
 }
 
@@ -63,8 +68,30 @@ func (s *aiAgentService) GetAIAgentRequest(id int) (*models.AIAgentRequest, erro
 	return s.aiAgentRepo.GetByID(id)
 }
 
+func (s *aiAgentService) GetAIAgentRequestByTeamsMessageID(teamsMessageID string) (*models.AIAgentRequest, error) {
+	return s.aiAgentRepo.GetByTeamsMessageID(teamsMessageID)
+}
+
 func (s *aiAgentService) UpdateAIAgentRequest(id int, req *models.AIAgentRequest) error {
 	return s.aiAgentRepo.Update(id, req)
+}
+
+func (s *aiAgentService) UpdateAIAgentStatus(id int, status string) error {
+	// Validate status values
+	validStatuses := []string{"pending", "processing", "completed", "failed"}
+	isValid := false
+	for _, validStatus := range validStatuses {
+		if status == validStatus {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		return fmt.Errorf("invalid status: %s. Valid statuses are: %v", status, validStatuses)
+	}
+
+	return s.aiAgentRepo.UpdateStatus(id, status)
 }
 
 func (s *aiAgentService) ProcessAIAgentRequest(id int) (*models.AIAgentResponse, error) {
@@ -73,13 +100,12 @@ func (s *aiAgentService) ProcessAIAgentRequest(id int) (*models.AIAgentResponse,
 	// Get the request
 	request, err := s.aiAgentRepo.GetByID(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get AI agent request %d: %w", id, err)
 	}
 
-	// Update status to processing
-	request.Status = "processing"
-	if err := s.aiAgentRepo.Update(id, request); err != nil {
-		return nil, err
+	// Update status to processing in a single operation
+	if err := s.aiAgentRepo.UpdateStatus(id, "processing"); err != nil {
+		return nil, fmt.Errorf("failed to update request status: %w", err)
 	}
 
 	// Extract text from message or attachment
@@ -111,15 +137,13 @@ func (s *aiAgentService) ProcessAIAgentRequest(id int) (*models.AIAgentResponse,
 	// Extract skills from NER result
 	var allSkills []string
 	if nerResult != nil {
-		allSkills = append(allSkills, nerResult.Skills.ProgrammingLanguages...)
-		allSkills = append(allSkills, nerResult.Skills.WebTechnologies...)
-		allSkills = append(allSkills, nerResult.Skills.Databases...)
-		allSkills = append(allSkills, nerResult.Skills.CloudDevOps...)
-		allSkills = append(allSkills, nerResult.Skills.SoftSkills...)
-		allSkills = append(allSkills, nerResult.Skills.ToolsFrameworks...)
+		// Extract all skills from dynamic categories
+		for _, skillList := range nerResult.Skills.Categories {
+			allSkills = append(allSkills, skillList...)
+		}
 	}
 
-	// Deduplicate skills
+	// Deduplicate and normalize skills
 	skills := s.deduplicateSkills(allSkills)
 
 	// Update request with extracted data
@@ -181,7 +205,7 @@ func (s *aiAgentService) ProcessAIAgentRequest(id int) (*models.AIAgentResponse,
 	return response, nil
 }
 
-func (s *aiAgentService) ExtractSkillsFromText(text string) (*models.SkillExtractionResponse, error) {
+func (s *aiAgentService) ExtractSkillsFromText(text string) (*models.SkillExtractResponse, error) {
 	// Use NER service for skill extraction
 	nerResult, err := s.nerService.ExtractSkillsFromText(text)
 	if err != nil {
@@ -191,18 +215,16 @@ func (s *aiAgentService) ExtractSkillsFromText(text string) (*models.SkillExtrac
 	// Extract skills from NER result
 	var allSkills []string
 	if nerResult != nil {
-		allSkills = append(allSkills, nerResult.Skills.ProgrammingLanguages...)
-		allSkills = append(allSkills, nerResult.Skills.WebTechnologies...)
-		allSkills = append(allSkills, nerResult.Skills.Databases...)
-		allSkills = append(allSkills, nerResult.Skills.CloudDevOps...)
-		allSkills = append(allSkills, nerResult.Skills.SoftSkills...)
-		allSkills = append(allSkills, nerResult.Skills.ToolsFrameworks...)
+		// Extract all skills from dynamic categories
+		for _, skillList := range nerResult.Skills.Categories {
+			allSkills = append(allSkills, skillList...)
+		}
 	}
 
 	// Deduplicate and return
 	skills := s.deduplicateSkills(allSkills)
 
-	return &models.SkillExtractionResponse{
+	return &models.SkillExtractResponse{
 		Skills: skills,
 		Text:   text,
 	}, nil
@@ -241,22 +263,29 @@ func (s *aiAgentService) extractTextFromAttachment(url string) (string, error) {
 
 // findMatchingEmployees finds employees matching the extracted skills
 func (s *aiAgentService) findMatchingEmployees(skills []string) ([]models.Match, error) {
-	// Get all employees
-	employees, err := s.employeeRepo.GetAll()
-	if err != nil {
-		return nil, err
+	if len(skills) == 0 {
+		return []models.Match{}, nil
 	}
 
-	// Create a search request
+	// Normalize skill names for database search (optimized)
+	normalizedSkills := s.normalizeSkills(skills)
+
+	// Try multiple search strategies in order of efficiency
+	employees, err := s.findEmployeesWithSkills(normalizedSkills, skills)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find employees: %w", err)
+	}
+
+	// Create optimized search request
 	searchReq := &models.SearchRequest{
 		RequiredSkills: skills,
-		MinMatchScore:  0.1, // Low threshold to get more results
+		MinMatchScore:  0.1,
 	}
 
-	// Use the existing matching engine
+	// Use matching engine to score and rank results
 	matches := s.matchEngine.SearchEmployees(searchReq, employees)
 
-	// Return top 5 matches
+	// Return top 5 matches (optimized slice operation)
 	if len(matches) > 5 {
 		matches = matches[:5]
 	}
@@ -264,14 +293,63 @@ func (s *aiAgentService) findMatchingEmployees(skills []string) ([]models.Match,
 	return matches, nil
 }
 
-// generateMatchExplanations generates explanations for each match
+// findEmployeesWithSkills tries multiple strategies to find employees efficiently
+func (s *aiAgentService) findEmployeesWithSkills(normalizedSkills, originalSkills []string) ([]models.Employee, error) {
+	// Strategy 1: Try normalized skills first (most efficient)
+	if employees, err := s.employeeRepo.GetEmployeesWithSkills(normalizedSkills); err == nil && len(employees) > 0 {
+		return employees, nil
+	}
+
+	// Strategy 2: Try original skills (case variations)
+	if employees, err := s.employeeRepo.GetEmployeesWithSkills(originalSkills); err == nil && len(employees) > 0 {
+		return employees, nil
+	}
+
+	// Strategy 3: Fall back to full search only if necessary
+	return s.employeeRepo.GetAll()
+}
+
+// normalizeSkills normalizes multiple skills efficiently
+func (s *aiAgentService) normalizeSkills(skills []string) []string {
+	normalized := make([]string, 0, len(skills))
+	seen := make(map[string]bool) // Deduplicate
+
+	for _, skill := range skills {
+		normalizedSkill := s.normalizeSkillName(skill)
+		if !seen[normalizedSkill] {
+			normalized = append(normalized, normalizedSkill)
+			seen[normalizedSkill] = true
+		}
+	}
+
+	return normalized
+}
+
+// normalizeSkillName normalizes skill names for database matching (optimized)
+func (s *aiAgentService) normalizeSkillName(skillName string) string {
+	if skillName == "" {
+		return ""
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(skillName))
+
+	// Use cached normalization map for better performance
+	if mapped, exists := s.skillNormalization[normalized]; exists {
+		return mapped
+	}
+
+	return normalized
+}
+
+// generateMatchExplanations generates explanations for each match (optimized)
 func (s *aiAgentService) generateMatchExplanations(matches []models.Match, extractedSkills []string) []models.AIAgentMatch {
-	var aiMatches []models.AIAgentMatch
+	if len(matches) == 0 {
+		return []models.AIAgentMatch{}
+	}
+
+	aiMatches := make([]models.AIAgentMatch, 0, len(matches))
 
 	for _, match := range matches {
-		// Get resume link for the employee
-		resumeLink := s.getResumeLink(match.EmployeeID)
-
 		aiMatch := models.AIAgentMatch{
 			EmployeeID:     match.EmployeeID,
 			EmployeeName:   match.Employee.Name,
@@ -280,7 +358,7 @@ func (s *aiAgentService) generateMatchExplanations(matches []models.Match, extra
 			Seniority:      match.Employee.Level,
 			Location:       match.Employee.Location,
 			CurrentProject: s.getCurrentProject(match.Employee.CurrentProject),
-			ResumeLink:     resumeLink,
+			ResumeLink:     s.getResumeLink(match.EmployeeID),
 			MatchScore:     match.MatchScore,
 			MatchingSkills: match.MatchingSkills,
 			AISummary:      s.generateAISummary(match, extractedSkills),
@@ -364,16 +442,24 @@ func (s *aiAgentService) generateSummary(matches []models.AIAgentMatch, extracte
 	return summary
 }
 
-// deduplicateSkills removes duplicate skills from the list
+// deduplicateSkills removes duplicate skills and normalizes them (optimized)
 func (s *aiAgentService) deduplicateSkills(skills []string) []string {
-	skillMap := make(map[string]bool)
-	var uniqueSkills []string
+	if len(skills) == 0 {
+		return []string{}
+	}
+
+	seen := make(map[string]bool, len(skills))
+	uniqueSkills := make([]string, 0, len(skills))
 
 	for _, skill := range skills {
-		skill = strings.TrimSpace(skill)
-		if skill != "" && !skillMap[strings.ToLower(skill)] {
-			skillMap[strings.ToLower(skill)] = true
-			uniqueSkills = append(uniqueSkills, skill)
+		if skill == "" {
+			continue
+		}
+
+		normalized := s.normalizeSkillName(skill)
+		if !seen[normalized] {
+			seen[normalized] = true
+			uniqueSkills = append(uniqueSkills, normalized)
 		}
 	}
 
@@ -459,4 +545,29 @@ func (s *aiAgentService) getCurrentProject(project *string) string {
 		return ""
 	}
 	return *project
+}
+
+// FindMatchingEmployees finds employees matching the extracted skills (public method)
+func (s *aiAgentService) FindMatchingEmployees(skills []string) ([]models.Match, error) {
+	return s.findMatchingEmployees(skills)
+}
+
+// GenerateMatchExplanations generates explanations for each match (public method)
+func (s *aiAgentService) GenerateMatchExplanations(matches []models.Match, extractedSkills []string) []models.AIAgentMatch {
+	return s.generateMatchExplanations(matches, extractedSkills)
+}
+
+// GenerateMatchSummary generates a summary of all matches (public method)
+func (s *aiAgentService) GenerateMatchSummary(matches []models.AIAgentMatch, extractedSkills []string) string {
+	return s.generateSummary(matches, extractedSkills)
+}
+
+// SaveMatch saves a match to the database (public method)
+func (s *aiAgentService) SaveMatch(match *models.Match) (*models.Match, error) {
+	return s.matchRepo.Create(match)
+}
+
+// SaveResponse saves an AI agent response to the database (public method)
+func (s *aiAgentService) SaveResponse(response *models.AIAgentResponse) error {
+	return s.aiAgentRepo.SaveResponse(response)
 }

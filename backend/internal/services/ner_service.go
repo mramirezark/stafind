@@ -3,384 +3,366 @@ package services
 import (
 	"fmt"
 	"regexp"
-	"stafind-backend/internal/constants"
-	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"stafind-backend/internal/repositories"
 
 	"github.com/jdkato/prose/v2"
 )
 
-// NERService handles Named Entity Recognition for skill extraction
-type NERService struct{}
-
-// NewNERService creates a new NER service
-func NewNERService() *NERService {
-	return &NERService{}
+// DatabaseSkillExtractor provides skill extraction using database categories and skills
+type DatabaseSkillExtractor struct {
+	skillRepo       repositories.SkillRepository
+	categoryRepo    repositories.CategoryRepository
+	skillsCache     map[string]SkillInfo
+	categoriesCache map[string]CategoryInfo
+	cacheMutex      sync.RWMutex
+	lastCacheUpdate time.Time
+	cacheExpiry     time.Duration
 }
 
-// ExtractedSkills represents the structured output of skill extraction
+// SkillInfo contains metadata about a skill from the database
+type SkillInfo struct {
+	ID         int      `json:"id"`
+	Name       string   `json:"name"`
+	Categories []string `json:"categories"`
+	Synonyms   []string `json:"synonyms"`
+}
+
+// CategoryInfo contains metadata about a category from the database
+type CategoryInfo struct {
+	ID     int      `json:"id"`
+	Name   string   `json:"name"`
+	Skills []string `json:"skills"`
+}
+
+// ExtractedSkills represents the structured skills extracted from text using dynamic categories
 type ExtractedSkills struct {
-	ProgrammingLanguages []string `json:"programming_languages"`
-	WebTechnologies      []string `json:"web_technologies"`
-	Databases            []string `json:"databases"`
-	CloudDevOps          []string `json:"cloud_devops"`
-	SoftSkills           []string `json:"soft_skills"`
-	ToolsFrameworks      []string `json:"tools_frameworks"`
-	YearsOfExperience    *int     `json:"years_of_experience"`
-	EducationLevel       []string `json:"education_level"`
-	LanguagesDetected    []string `json:"languages_detected"`
-	Summary              string   `json:"summary"`
-	ConfidenceScore      float64  `json:"confidence_score"`
+	Categories        map[string][]string `json:"categories"`          // Dynamic categories from database
+	EducationLevel    []string            `json:"education_level"`     // Still needed for NER
+	LanguagesDetected []string            `json:"languages_detected"`  // Still needed for NER
+	YearsOfExperience []string            `json:"years_of_experience"` // Still needed for NER
+	Summary           string              `json:"summary"`
+	ConfidenceScore   float64             `json:"confidence_score"`
 }
 
 // SkillExtractionResult represents the complete result of skill extraction
 type SkillExtractionResult struct {
-	Skills           ExtractedSkills `json:"extracted_skills"`
+	Skills           ExtractedSkills `json:"skills"`
 	TotalSkillsFound int             `json:"total_skills_found"`
-	ExtractionMethod string          `json:"skill_extraction_method"`
+	ExtractionMethod string          `json:"extraction_method"`
 	AIConfidence     string          `json:"ai_confidence"`
 	RawText          string          `json:"raw_text"`
 	ProcessingTime   string          `json:"processing_time"`
 }
 
-// ExtractSkillsFromText uses Go NER libraries to extract skills from text
-func (n *NERService) ExtractSkillsFromText(text string) (*SkillExtractionResult, error) {
-	start := time.Now()
+// NERService provides Named Entity Recognition capabilities for skill extraction
+type NERService struct {
+	databaseExtractor *DatabaseSkillExtractor
+}
 
-	// Create a new document for analysis
+// NewNERService creates a new instance of NERService with database integration
+func NewNERService(skillRepo repositories.SkillRepository, categoryRepo repositories.CategoryRepository) *NERService {
+	return &NERService{
+		databaseExtractor: NewDatabaseSkillExtractor(skillRepo, categoryRepo),
+	}
+}
+
+// ExtractSkillsFromText extracts skills from text using database categories and skills
+func (n *NERService) ExtractSkillsFromText(text string) (*SkillExtractionResult, error) {
+	return n.databaseExtractor.ExtractSkillsFromText(text)
+}
+
+// NewDatabaseSkillExtractor creates a new database-backed skill extractor
+func NewDatabaseSkillExtractor(skillRepo repositories.SkillRepository, categoryRepo repositories.CategoryRepository) *DatabaseSkillExtractor {
+	return &DatabaseSkillExtractor{
+		skillRepo:       skillRepo,
+		categoryRepo:    categoryRepo,
+		skillsCache:     make(map[string]SkillInfo),
+		categoriesCache: make(map[string]CategoryInfo),
+		cacheExpiry:     30 * time.Minute, // Cache for 30 minutes
+	}
+}
+
+// LoadSkillsFromDB loads all skills from the database with their categories
+func (d *DatabaseSkillExtractor) LoadSkillsFromDB() error {
+	d.cacheMutex.Lock()
+	defer d.cacheMutex.Unlock()
+
+	// Check if cache is still valid
+	if time.Since(d.lastCacheUpdate) < d.cacheExpiry && len(d.skillsCache) > 0 {
+		return nil
+	}
+
+	// Load skills with categories
+	skills, err := d.skillRepo.GetSkillsWithCategories()
+	if err != nil {
+		return fmt.Errorf("failed to load skills from database: %w", err)
+	}
+
+	// Clear existing cache
+	d.skillsCache = make(map[string]SkillInfo)
+
+	// Build skill cache with normalized names and categories
+	for _, skill := range skills {
+		skillInfo := SkillInfo{
+			ID:         skill.ID,
+			Name:       skill.Name,
+			Categories: make([]string, len(skill.Categories)),
+			Synonyms:   generateSynonyms(skill.Name),
+		}
+
+		// Add categories
+		for i, category := range skill.Categories {
+			skillInfo.Categories[i] = category.Name
+		}
+
+		// Add to cache with normalized name
+		normalizedName := normalizeSkillName(skill.Name)
+		d.skillsCache[normalizedName] = skillInfo
+
+		// Also add original name if different
+		if normalizedName != strings.ToLower(skill.Name) {
+			d.skillsCache[strings.ToLower(skill.Name)] = skillInfo
+		}
+	}
+
+	// Load categories
+	categories, err := d.categoryRepo.GetAll()
+	if err != nil {
+		return fmt.Errorf("failed to load categories from database: %w", err)
+	}
+
+	d.categoriesCache = make(map[string]CategoryInfo)
+
+	for _, category := range categories {
+		categoryInfo := CategoryInfo{
+			ID:     category.ID,
+			Name:   category.Name,
+			Skills: []string{}, // Will be populated when needed
+		}
+		d.categoriesCache[strings.ToLower(category.Name)] = categoryInfo
+	}
+
+	d.lastCacheUpdate = time.Now()
+	return nil
+}
+
+// ExtractSkillsFromText extracts skills from text using database data
+func (d *DatabaseSkillExtractor) ExtractSkillsFromText(text string) (*SkillExtractionResult, error) {
+	// Ensure skills are loaded from database
+	if err := d.LoadSkillsFromDB(); err != nil {
+		return nil, fmt.Errorf("failed to load skills from database: %w", err)
+	}
+
+	// Use Prose for initial NER
 	doc, err := prose.NewDocument(text)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create prose document: %v", err)
+		return nil, fmt.Errorf("failed to create prose document: %w", err)
 	}
 
 	// Extract entities using Prose
 	entities := doc.Entities()
+	tokens := doc.Tokens()
 
-	// Initialize skill categories
-	skills := &ExtractedSkills{
-		ProgrammingLanguages: []string{},
-		WebTechnologies:      []string{},
-		Databases:            []string{},
-		CloudDevOps:          []string{},
-		SoftSkills:           []string{},
-		ToolsFrameworks:      []string{},
-		EducationLevel:       []string{},
-		LanguagesDetected:    []string{},
-		Summary:              "Skills extracted using Go NER library (Prose)",
-		ConfidenceScore:      0.9,
+	// Process text for skill extraction
+	extractedSkills := &ExtractedSkills{
+		Categories: make(map[string][]string),
 	}
 
-	// Process entities from Prose NER
-	for _, entity := range entities {
-		entityText := strings.ToLower(entity.Text)
-		entityLabel := entity.Label
+	// Combine entities and tokens for comprehensive analysis
+	allTextParts := make([]string, 0, len(entities)+len(tokens))
 
-		// Categorize entities based on their type and content
-		switch entityLabel {
-		case constants.EntityPerson, constants.EntityOrg, constants.EntityGPE:
-			// Check if it's a technology company or skill
-			if n.isTechnologyRelated(entityText) {
-				n.categorizeTechnology(entityText, skills)
-			}
-		case constants.EntityWorkOfArt, constants.EntityEvent:
-			// Check if it's a framework, library, or tool
-			n.categorizeTechnology(entityText, skills)
+	// Add entities
+	for _, entity := range entities {
+		allTextParts = append(allTextParts, entity.Text)
+	}
+
+	// Add tokens that might be skills
+	for _, token := range tokens {
+		if d.isLikelySkill(token.Text) {
+			allTextParts = append(allTextParts, token.Text)
 		}
 	}
 
-	// Additional regex-based extraction for comprehensive coverage
-	n.extractSkillsWithRegex(text, skills)
+	// Extract skills using database lookup
+	d.extractSkillsFromTextParts(allTextParts, extractedSkills)
 
-	// Extract years of experience
-	skills.YearsOfExperience = n.extractYearsOfExperience(text)
+	// Also search for skills in the full text using regex patterns
+	d.extractSkillsWithRegex(text, extractedSkills)
 
-	// Extract education level
-	skills.EducationLevel = n.extractEducationLevel(text)
+	// Remove duplicates and return result
+	d.deduplicateSkills(extractedSkills)
 
-	// Detect languages
-	skills.LanguagesDetected = n.detectLanguages(text)
-
-	// Calculate total skills found
-	totalSkills := len(skills.ProgrammingLanguages) + len(skills.WebTechnologies) +
-		len(skills.Databases) + len(skills.CloudDevOps) +
-		len(skills.SoftSkills) + len(skills.ToolsFrameworks)
-
-	processingTime := time.Since(start).String()
+	totalSkills := d.countTotalSkills(extractedSkills)
+	extractedSkills.Summary = fmt.Sprintf("Extracted %d skills using database categories", totalSkills)
+	extractedSkills.ConfidenceScore = d.calculateConfidenceScore(extractedSkills)
 
 	return &SkillExtractionResult{
-		Skills:           *skills,
+		Skills:           *extractedSkills,
 		TotalSkillsFound: totalSkills,
-		ExtractionMethod: "go_ner_library_prose",
-		AIConfidence:     "high",
+		ExtractionMethod: "database_ner",
+		AIConfidence:     fmt.Sprintf("%.2f", extractedSkills.ConfidenceScore),
 		RawText:          text,
-		ProcessingTime:   processingTime,
+		ProcessingTime:   time.Now().Format(time.RFC3339),
 	}, nil
 }
 
-// isTechnologyRelated checks if an entity is related to technology
-func (n *NERService) isTechnologyRelated(text string) bool {
-	techKeywords := []string{
-		"javascript", "python", "java", "react", "angular", "vue", "node",
-		"aws", "azure", "docker", "kubernetes", "mysql", "postgresql",
-		"mongodb", "redis", "git", "github", "gitlab", "jenkins",
-		"terraform", "ansible", "microservices", "api", "rest",
-		"graphql", "typescript", "html", "css", "bootstrap", "tailwind",
-		"django", "flask", "spring", "laravel", "rails", "express",
-		"redis", "elasticsearch", "cassandra", "oracle", "sql server",
-		"sqlite", "dynamodb", "neo4j", "chef", "puppet", "ci", "cd",
-	}
+// extractSkillsFromTextParts extracts skills from individual text parts
+func (d *DatabaseSkillExtractor) extractSkillsFromTextParts(textParts []string, skills *ExtractedSkills) {
+	d.cacheMutex.RLock()
+	defer d.cacheMutex.RUnlock()
 
-	text = strings.ToLower(text)
-	for _, keyword := range techKeywords {
-		if strings.Contains(text, keyword) {
-			return true
+	for _, part := range textParts {
+		normalized := normalizeSkillName(part)
+
+		if skillInfo, exists := d.skillsCache[normalized]; exists {
+			d.categorizeSkill(skillInfo, skills)
 		}
-	}
-	return false
-}
-
-// categorizeTechnology categorizes a technology into appropriate skill category
-func (n *NERService) categorizeTechnology(text string, skills *ExtractedSkills) {
-	text = strings.ToLower(strings.TrimSpace(text))
-
-	// Programming languages
-	programmingLanguages := []string{
-		"javascript", "js", "typescript", "ts", "python", "py", "java",
-		"c#", "csharp", "c++", "cpp", "php", "ruby", "go", "golang",
-		"rust", "swift", "kotlin", "scala", "r", "matlab", "perl",
-		"bash", "shell", "powershell", "sql", "pl/sql", "t-sql",
-	}
-
-	// Web technologies
-	webTechnologies := []string{
-		"react", "angular", "vue", "vue.js", "node.js", "nodejs", "node",
-		"express", "express.js", "django", "flask", "spring", "spring boot",
-		"laravel", "rails", "ruby on rails", "asp.net", "html", "html5",
-		"css", "css3", "sass", "scss", "less", "bootstrap", "tailwind",
-		"tailwindcss", "jquery", "jquery.js", "next.js", "nuxt.js",
-		"gatsby", "svelte", "ember", "backbone", "knockout", "knockout.js",
-	}
-
-	// Databases
-	databases := []string{
-		"mysql", "postgresql", "postgres", "mongodb", "mongo", "redis",
-		"elasticsearch", "cassandra", "oracle", "sql server", "sqlite",
-		"dynamodb", "neo4j", "couchdb", "couchbase", "influxdb", "timescaledb",
-		"mariadb", "percona", "clickhouse", "snowflake", "bigquery",
-	}
-
-	// Cloud & DevOps
-	cloudDevOps := []string{
-		"aws", "amazon web services", "azure", "gcp", "google cloud",
-		"docker", "kubernetes", "k8s", "jenkins", "gitlab", "github",
-		"terraform", "ansible", "chef", "puppet", "ci", "cd", "cicd",
-		"continuous integration", "continuous deployment", "microservices",
-		"serverless", "lambda", "ec2", "s3", "rds", "vpc", "iam",
-		"cloudformation", "cloudwatch", "route53", "elb", "alb", "nlb",
-	}
-
-	// Soft skills
-	softSkills := []string{
-		"leadership", "communication", "teamwork", "team work",
-		"problem solving", "problem-solving", "analytical thinking",
-		"creativity", "adaptability", "time management", "project management",
-		"mentoring", "collaboration", "liderazgo", "comunicación",
-		"trabajo en equipo", "resolución de problemas", "pensamiento analítico",
-		"creatividad", "adaptabilidad", "gestión del tiempo", "gestión de proyectos",
-		"mentoring", "colaboración", "agile", "scrum", "kanban", "lean",
-	}
-
-	// Check programming languages
-	for _, lang := range programmingLanguages {
-		if strings.Contains(text, lang) {
-			if !contains(skills.ProgrammingLanguages, lang) {
-				skills.ProgrammingLanguages = append(skills.ProgrammingLanguages, lang)
-			}
-			return
-		}
-	}
-
-	// Check web technologies
-	for _, tech := range webTechnologies {
-		if strings.Contains(text, tech) {
-			if !contains(skills.WebTechnologies, tech) {
-				skills.WebTechnologies = append(skills.WebTechnologies, tech)
-			}
-			return
-		}
-	}
-
-	// Check databases
-	for _, db := range databases {
-		if strings.Contains(text, db) {
-			if !contains(skills.Databases, db) {
-				skills.Databases = append(skills.Databases, db)
-			}
-			return
-		}
-	}
-
-	// Check cloud & devops
-	for _, cloud := range cloudDevOps {
-		if strings.Contains(text, cloud) {
-			if !contains(skills.CloudDevOps, cloud) {
-				skills.CloudDevOps = append(skills.CloudDevOps, cloud)
-			}
-			return
-		}
-	}
-
-	// Check soft skills
-	for _, skill := range softSkills {
-		if strings.Contains(text, skill) {
-			if !contains(skills.SoftSkills, skill) {
-				skills.SoftSkills = append(skills.SoftSkills, skill)
-			}
-			return
-		}
-	}
-
-	// If not categorized, add to tools and frameworks
-	if !contains(skills.ToolsFrameworks, text) {
-		skills.ToolsFrameworks = append(skills.ToolsFrameworks, text)
 	}
 }
 
-// extractSkillsWithRegex performs additional regex-based extraction
-func (n *NERService) extractSkillsWithRegex(text string, skills *ExtractedSkills) {
-	lowerText := strings.ToLower(text)
+// extractSkillsWithRegex searches for skills using regex patterns
+func (d *DatabaseSkillExtractor) extractSkillsWithRegex(text string, skills *ExtractedSkills) {
+	d.cacheMutex.RLock()
+	defer d.cacheMutex.RUnlock()
 
-	// Comprehensive skill patterns
-	skillPatterns := map[string][]string{
-		"programming_languages": {
-			`\b(javascript|js|typescript|ts|python|py|java|c#|csharp|c\+\+|cpp|php|ruby|go|golang|rust|swift|kotlin|scala|r|matlab|perl|bash|shell)\b`,
-		},
-		"web_technologies": {
-			`\b(react|angular|vue|node\.?js|nodejs|express|django|flask|spring|laravel|rails|asp\.net|html|css|sass|scss|less|bootstrap|tailwind|jquery)\b`,
-		},
-		"databases": {
-			`\b(mysql|postgresql|postgres|mongodb|mongo|redis|elasticsearch|cassandra|oracle|sql\s+server|sqlite|dynamodb|neo4j)\b`,
-		},
-		"cloud_devops": {
-			`\b(aws|azure|gcp|docker|kubernetes|k8s|jenkins|gitlab|github|terraform|ansible|chef|puppet|ci/cd|microservices)\b`,
-		},
+	// Create regex patterns for common skill formats
+	patterns := []string{
+		`\b[A-Z][a-z]+(?:\.[A-Z][a-z]+)*\b`, // Capitalized words (React.js, Node.js)
+		`\b[a-z]+(?:\.[a-z]+)*\b`,           // Lowercase words (mysql, redis)
+		`\b[A-Z]{2,}\b`,                     // Acronyms (AWS, API, SQL)
 	}
 
-	for category, patterns := range skillPatterns {
-		for _, pattern := range patterns {
-			re := regexp.MustCompile(pattern)
-			matches := re.FindAllString(lowerText, -1)
+	for _, pattern := range patterns {
+		regex := regexp.MustCompile(pattern)
+		matches := regex.FindAllString(text, -1)
 
-			for _, match := range matches {
-				match = strings.TrimSpace(match)
-				switch category {
-				case "programming_languages":
-					if !contains(skills.ProgrammingLanguages, match) {
-						skills.ProgrammingLanguages = append(skills.ProgrammingLanguages, match)
-					}
-				case "web_technologies":
-					if !contains(skills.WebTechnologies, match) {
-						skills.WebTechnologies = append(skills.WebTechnologies, match)
-					}
-				case "databases":
-					if !contains(skills.Databases, match) {
-						skills.Databases = append(skills.Databases, match)
-					}
-				case "cloud_devops":
-					if !contains(skills.CloudDevOps, match) {
-						skills.CloudDevOps = append(skills.CloudDevOps, match)
-					}
-				}
+		for _, match := range matches {
+			normalized := normalizeSkillName(match)
+			if skillInfo, exists := d.skillsCache[normalized]; exists {
+				d.categorizeSkill(skillInfo, skills)
 			}
 		}
 	}
 }
 
-// extractYearsOfExperience extracts years of experience from text
-func (n *NERService) extractYearsOfExperience(text string) *int {
-	experiencePatterns := []string{
-		`(\d+)\s*(?:years?|años?)\s*(?:of\s*)?(?:experience|experiencia)`,
-		`(?:experience|experiencia)\s*(?:of\s*)?(\d+)\s*(?:years?|años?)`,
-		`(\d+)\s*(?:years?|años?)\s*(?:in|en|with)`,
-		`(\d+)\+?\s*(?:years?|años?)`,
-	}
+// categorizeSkill categorizes a skill into the appropriate category using pure dynamic categories
+func (d *DatabaseSkillExtractor) categorizeSkill(skillInfo SkillInfo, skills *ExtractedSkills) {
+	for _, category := range skillInfo.Categories {
+		// Initialize category slice if it doesn't exist
+		if skills.Categories[category] == nil {
+			skills.Categories[category] = []string{}
+		}
 
-	for _, pattern := range experiencePatterns {
-		re := regexp.MustCompile(`(?i)` + pattern)
-		matches := re.FindStringSubmatch(text)
-		if len(matches) > 1 {
-			if years, err := strconv.Atoi(matches[1]); err == nil {
-				return &years
-			}
+		// Add skill to the category if not already present
+		if !contains(skills.Categories[category], skillInfo.Name) {
+			skills.Categories[category] = append(skills.Categories[category], skillInfo.Name)
 		}
 	}
-
-	return nil
 }
 
-// extractEducationLevel extracts education level from text
-func (n *NERService) extractEducationLevel(text string) []string {
-	educationLevels := []string{}
-	lowerText := strings.ToLower(text)
-
-	educationPatterns := map[string][]string{
-		"en": {"bachelor", "master", "phd", "doctorate", "degree", "diploma", "certification", "certificate", "university", "college"},
-		"es": {"licenciatura", "maestría", "doctorado", "grado", "diploma", "certificación", "certificado", "universidad", "colegio", "ingeniería", "ingeniero"},
-	}
-
-	for _, patterns := range educationPatterns {
-		for _, pattern := range patterns {
-			if strings.Contains(lowerText, pattern) && !contains(educationLevels, pattern) {
-				educationLevels = append(educationLevels, pattern)
-			}
-		}
-	}
-
-	return educationLevels
+// Helper functions
+func normalizeSkillName(name string) string {
+	// Remove common prefixes/suffixes and normalize
+	normalized := strings.ToLower(name)
+	normalized = strings.TrimSpace(normalized)
+	normalized = strings.ReplaceAll(normalized, ".", "")
+	normalized = strings.ReplaceAll(normalized, "-", "")
+	normalized = strings.ReplaceAll(normalized, "_", "")
+	return normalized
 }
 
-// detectLanguages detects the languages used in the text
-func (n *NERService) detectLanguages(text string) []string {
-	languages := []string{}
-	lowerText := strings.ToLower(text)
+func generateSynonyms(name string) []string {
+	synonyms := []string{name}
 
-	// English indicators
-	englishWords := []string{"experience", "skills", "developer", "engineer", "years", "required", "looking", "need", "hiring"}
-	hasEnglish := false
-	for _, word := range englishWords {
-		if strings.Contains(lowerText, word) {
-			hasEnglish = true
-			break
+	// Add variations
+	variations := []string{
+		strings.ToLower(name),
+		strings.ToUpper(name),
+		strings.ReplaceAll(name, ".", ""),
+		strings.ReplaceAll(name, "-", ""),
+		strings.ReplaceAll(name, "_", ""),
+	}
+
+	for _, variation := range variations {
+		if variation != name && !contains(synonyms, variation) {
+			synonyms = append(synonyms, variation)
 		}
 	}
 
-	// Spanish indicators
-	spanishWords := []string{"experiencia", "habilidades", "desarrollador", "ingeniero", "años", "requerido", "buscamos", "necesitamos", "contratando"}
-	hasSpanish := false
-	for _, word := range spanishWords {
-		if strings.Contains(lowerText, word) {
-			hasSpanish = true
-			break
-		}
-	}
-
-	if hasEnglish {
-		languages = append(languages, "english")
-	}
-	if hasSpanish {
-		languages = append(languages, "spanish")
-	}
-
-	return languages
+	return synonyms
 }
 
-// contains checks if a slice contains a string
+func (d *DatabaseSkillExtractor) isLikelySkill(text string) bool {
+	// Simple heuristic to identify potential skills
+	if len(text) < 2 || len(text) > 50 {
+		return false
+	}
+
+	// Check if it's mostly alphanumeric
+	alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9\s\-_.]+$`)
+	if !alphanumeric.MatchString(text) {
+		return false
+	}
+
+	// Check if it contains at least one letter
+	hasLetter := regexp.MustCompile(`[a-zA-Z]`)
+	return hasLetter.MatchString(text)
+}
+
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
-		if strings.EqualFold(s, item) {
+		if s == item {
 			return true
 		}
 	}
 	return false
+}
+
+func (d *DatabaseSkillExtractor) deduplicateSkills(skills *ExtractedSkills) {
+	// Deduplicate skills in each dynamic category
+	for category, skillList := range skills.Categories {
+		skills.Categories[category] = removeDuplicates(skillList)
+	}
+}
+
+func removeDuplicates(slice []string) []string {
+	keys := make(map[string]bool)
+	result := []string{}
+
+	for _, item := range slice {
+		if !keys[item] {
+			keys[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
+}
+
+func (d *DatabaseSkillExtractor) countTotalSkills(skills *ExtractedSkills) int {
+	total := 0
+	for _, skillList := range skills.Categories {
+		total += len(skillList)
+	}
+	return total
+}
+
+func (d *DatabaseSkillExtractor) calculateConfidenceScore(skills *ExtractedSkills) float64 {
+	totalSkills := d.countTotalSkills(skills)
+	if totalSkills == 0 {
+		return 0.0
+	}
+
+	// Simple confidence calculation based on number of skills found
+	// More skills found = higher confidence (up to a point)
+	confidence := float64(totalSkills) * 0.1
+	if confidence > 0.9 {
+		confidence = 0.9
+	}
+
+	return confidence
 }

@@ -146,6 +146,13 @@ func (me *MatchEngine) findMatchingSkill(skillName string, employeeSkillMap map[
 		}
 	}
 
+	// Try partial word matching for complex skill names (e.g., "Java Development" matches "Java")
+	for dbSkillName, employeeSkill := range employeeSkillMap {
+		if me.isPartialSkillMatch(skillName, dbSkillName) {
+			return &employeeSkill, dbSkillName
+		}
+	}
+
 	return nil, ""
 }
 
@@ -174,6 +181,27 @@ func (me *MatchEngine) isSkillAbbreviation(abbr, fullName string) bool {
 	if possibleMatches, exists := abbreviationMappings[abbr]; exists {
 		for _, possible := range possibleMatches {
 			if strings.Contains(fullName, possible) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// isPartialSkillMatch checks if a skill name contains another skill as a word
+func (me *MatchEngine) isPartialSkillMatch(searchSkill, employeeSkill string) bool {
+	searchSkill = strings.ToLower(strings.TrimSpace(searchSkill))
+	employeeSkill = strings.ToLower(strings.TrimSpace(employeeSkill))
+
+	// Split search skill into words
+	searchWords := strings.Fields(searchSkill)
+	employeeWords := strings.Fields(employeeSkill)
+
+	// Check if any word from search skill matches any word from employee skill
+	for _, searchWord := range searchWords {
+		for _, employeeWord := range employeeWords {
+			if searchWord == employeeWord {
 				return true
 			}
 		}

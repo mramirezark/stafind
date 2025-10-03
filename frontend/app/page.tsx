@@ -18,6 +18,7 @@ import {
   Work as WorkIcon,
   SmartToy as AIAgentIcon,
   AdminPanelSettings as AdminIcon,
+  Psychology as SkillsIcon,
 } from '@mui/icons-material'
 import { 
   Dashboard, 
@@ -26,12 +27,14 @@ import {
   AuthWrapper,
   AIAgentManagement,
   SkillExtractionTool,
-  AdminDashboard
+  AdminDashboard,
+  SkillManagement
 } from '@/components'
 
 const actions = [
   { icon: <DashboardIcon />, name: 'Dashboard', key: 'dashboard' },
   { icon: <PersonAddIcon />, name: 'Add Employee', key: 'employee' },
+  { icon: <SkillsIcon />, name: 'Skills', key: 'skills' },
   { icon: <AIAgentIcon />, name: 'AI Agent', key: 'ai-agent' },
 ]
 
@@ -48,6 +51,8 @@ function MainApp() {
         return <Dashboard />
       case 'employee':
         return <EmployeeManagement />
+      case 'skills':
+        return <SkillManagement />
       case 'ai-agent':
         return <AIAgentManagement />
       case 'admin':
@@ -71,12 +76,14 @@ function MainApp() {
               <Typography variant="h4" component="h1" gutterBottom>
                 {activeView === 'dashboard' && 'Dashboard'}
                 {activeView === 'employee' && 'Employee Management'}
+                {activeView === 'skills' && 'Skill Management'}
                 {activeView === 'ai-agent' && 'AI Agent Management'}
                 {activeView === 'admin' && 'Admin Panel'}
               </Typography>
               <Typography variant="body1" color="text.secondary">
                 {activeView === 'dashboard' && 'Overview of your engineering team and recent activity'}
                 {activeView === 'employee' && 'Add and manage employee profiles with integrated search and filtering'}
+                {activeView === 'skills' && 'Manage skills, categories, and analyze skill usage across your organization'}
                 {activeView === 'ai-agent' && 'Monitor AI agent requests and manage automated employee matching'}
                 {activeView === 'admin' && 'Manage users, roles, and API keys for system administration'}
               </Typography>

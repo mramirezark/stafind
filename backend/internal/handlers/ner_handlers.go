@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"strings"
 
 	"stafind-backend/internal/constants"
@@ -172,20 +173,37 @@ func (h *NERHandlers) ExtractSkillsAndSearch(c *fiber.Ctx) error {
 	}
 
 	// Convert extracted skills to search request format
-	allSkills := append(nerResult.Skills.ProgrammingLanguages, nerResult.Skills.WebTechnologies...)
-	allSkills = append(allSkills, nerResult.Skills.Databases...)
-	allSkills = append(allSkills, nerResult.Skills.CloudDevOps...)
-	allSkills = append(allSkills, nerResult.Skills.SoftSkills...)
+	var allSkills []string
+	for _, skillList := range nerResult.Skills.Categories {
+		allSkills = append(allSkills, skillList...)
+	}
 
 	searchRequest := models.SearchRequest{
 		RequiredSkills:  allSkills,
 		PreferredSkills: []string{},
 		Department:      "",
 		ExperienceLevel: func() string {
-			if nerResult.Skills.YearsOfExperience != nil {
-				if *nerResult.Skills.YearsOfExperience >= 5 {
+			if len(nerResult.Skills.YearsOfExperience) > 0 {
+				// Get the maximum years from the array
+				maxYears := 0
+				for _, yearStr := range nerResult.Skills.YearsOfExperience {
+					// Extract numeric value from string
+					cleanStr := ""
+					for _, char := range yearStr {
+						if char >= '0' && char <= '9' {
+							cleanStr += string(char)
+						}
+					}
+					if cleanStr != "" {
+						if years, err := strconv.Atoi(cleanStr); err == nil && years > maxYears {
+							maxYears = years
+						}
+					}
+				}
+
+				if maxYears >= 5 {
 					return "senior"
-				} else if *nerResult.Skills.YearsOfExperience >= 3 {
+				} else if maxYears >= 3 {
 					return "mid"
 				} else {
 					return "junior"
@@ -325,81 +343,73 @@ type SkillComparison struct {
 	OverallMatchScore float64  `json:"overall_match_score"`
 }
 
-// compareSkillSets compares two sets of extracted skills
+// compareSkillSets compares two sets of extracted skills using dynamic categories
 func (h *NERHandlers) compareSkillSets(skills1, skills2 services.ExtractedSkills) SkillComparison {
 	comparison := SkillComparison{}
 
-	// Compare programming languages
-	prog1 := skills1.ProgrammingLanguages
-	prog2 := skills2.ProgrammingLanguages
-	commonProg, only1Prog, only2Prog := h.compareStringSlices(prog1, prog2)
-	totalProg := len(prog1) + len(prog2) - len(commonProg)
-	if totalProg > 0 {
-		comparison.ProgrammingMatch = float64(len(commonProg)) / float64(totalProg)
+	// Get all unique categories from both skill sets
+	allCategories := make(map[string]bool)
+	for category := range skills1.Categories {
+		allCategories[category] = true
+	}
+	for category := range skills2.Categories {
+		allCategories[category] = true
 	}
 
-	// Compare web technologies
-	web1 := skills1.WebTechnologies
-	web2 := skills2.WebTechnologies
-	commonWeb, only1Web, only2Web := h.compareStringSlices(web1, web2)
-	totalWeb := len(web1) + len(web2) - len(commonWeb)
-	if totalWeb > 0 {
-		comparison.WebTechMatch = float64(len(commonWeb)) / float64(totalWeb)
+	// Compare skills in each category
+	totalMatch := 0.0
+	categoryCount := 0
+
+	for category := range allCategories {
+		skills1List := skills1.Categories[category]
+		skills2List := skills2.Categories[category]
+
+		if len(skills1List) == 0 && len(skills2List) == 0 {
+			continue
+		}
+
+		common, _, _ := h.compareStringSlices(skills1List, skills2List)
+		total := len(skills1List) + len(skills2List) - len(common)
+
+		if total > 0 {
+			match := float64(len(common)) / float64(total)
+			totalMatch += match
+			categoryCount++
+		}
 	}
 
-	// Compare databases
-	db1 := skills1.Databases
-	db2 := skills2.Databases
-	commonDb, only1Db, only2Db := h.compareStringSlices(db1, db2)
-	totalDb := len(db1) + len(db2) - len(commonDb)
-	if totalDb > 0 {
-		comparison.DatabaseMatch = float64(len(commonDb)) / float64(totalDb)
+	// Calculate overall match percentage
+	if categoryCount > 0 {
+		comparison.OverallMatchScore = totalMatch / float64(categoryCount)
 	}
 
-	// Compare cloud & devops
-	cloud1 := skills1.CloudDevOps
-	cloud2 := skills2.CloudDevOps
-	commonCloud, only1Cloud, only2Cloud := h.compareStringSlices(cloud1, cloud2)
-	totalCloud := len(cloud1) + len(cloud2) - len(commonCloud)
-	if totalCloud > 0 {
-		comparison.CloudDevOpsMatch = float64(len(commonCloud)) / float64(totalCloud)
+	// Set individual category matches to overall match for simplicity
+	comparison.ProgrammingMatch = comparison.OverallMatchScore
+	comparison.WebTechMatch = comparison.OverallMatchScore
+	comparison.DatabaseMatch = comparison.OverallMatchScore
+	comparison.CloudDevOpsMatch = comparison.OverallMatchScore
+	comparison.SoftSkillsMatch = comparison.OverallMatchScore
+
+	// Combine all common skills from all categories
+	var allCommonSkills []string
+	var allText1OnlySkills []string
+	var allText2OnlySkills []string
+
+	for category := range allCategories {
+		skills1List := skills1.Categories[category]
+		skills2List := skills2.Categories[category]
+
+		common, only1, only2 := h.compareStringSlices(skills1List, skills2List)
+		allCommonSkills = append(allCommonSkills, common...)
+		allText1OnlySkills = append(allText1OnlySkills, only1...)
+		allText2OnlySkills = append(allText2OnlySkills, only2...)
 	}
 
-	// Compare soft skills
-	soft1 := skills1.SoftSkills
-	soft2 := skills2.SoftSkills
-	commonSoft, only1Soft, only2Soft := h.compareStringSlices(soft1, soft2)
-	totalSoft := len(soft1) + len(soft2) - len(commonSoft)
-	if totalSoft > 0 {
-		comparison.SoftSkillsMatch = float64(len(commonSoft)) / float64(totalSoft)
-	}
+	comparison.CommonSkills = allCommonSkills
+	comparison.Text1OnlySkills = allText1OnlySkills
+	comparison.Text2OnlySkills = allText2OnlySkills
 
-	// Combine all common skills
-	comparison.CommonSkills = append(commonProg, commonWeb...)
-	comparison.CommonSkills = append(comparison.CommonSkills, commonDb...)
-	comparison.CommonSkills = append(comparison.CommonSkills, commonCloud...)
-	comparison.CommonSkills = append(comparison.CommonSkills, commonSoft...)
-
-	// Combine all text1-only skills
-	comparison.Text1OnlySkills = append(only1Prog, only1Web...)
-	comparison.Text1OnlySkills = append(comparison.Text1OnlySkills, only1Db...)
-	comparison.Text1OnlySkills = append(comparison.Text1OnlySkills, only1Cloud...)
-	comparison.Text1OnlySkills = append(comparison.Text1OnlySkills, only1Soft...)
-
-	// Combine all text2-only skills
-	comparison.Text2OnlySkills = append(only2Prog, only2Web...)
-	comparison.Text2OnlySkills = append(comparison.Text2OnlySkills, only2Db...)
-	comparison.Text2OnlySkills = append(comparison.Text2OnlySkills, only2Cloud...)
-	comparison.Text2OnlySkills = append(comparison.Text2OnlySkills, only2Soft...)
-
-	// Calculate overall match score (weighted average)
-	totalSkills1 := len(prog1) + len(web1) + len(db1) + len(cloud1) + len(soft1)
-	totalSkills2 := len(prog2) + len(web2) + len(db2) + len(cloud2) + len(soft2)
-	totalCommon := len(comparison.CommonSkills)
-
-	if totalSkills1+totalSkills2 > 0 {
-		comparison.OverallMatchScore = float64(totalCommon) / float64(totalSkills1+totalSkills2-totalCommon)
-	}
+	// Overall match score is already calculated above
 
 	return comparison
 }

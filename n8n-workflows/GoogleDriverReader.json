@@ -1,0 +1,388 @@
+{
+  "name": "GoogleDriverReader",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "33d1804c-96a9-435a-a8fa-836cd3c8c21e",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1952,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "whatToSearch": "files",
+          "fileTypes": "={{ [\"application/pdf\"] }}"
+        },
+        "options": {
+          "fields": "={{ [\"id\",\n      \"name\",\n      \"mimeType\",\n      \"size\",\n      \"createdTime\",\n      \"modifiedTime\",\n      \"webViewLink\",\n      \"parents\"] }}"
+        }
+      },
+      "id": "fda420b5-3a05-4193-af56-63adfa53f5b7",
+      "name": "Test Google Drive List",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1728,
+        80
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "F47QejHJLM67peJR",
+          "name": "Google Drive account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$input.all().length > 0}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a13c7f4c-133f-4a30-8da2-6e8cb1a67404",
+      "name": "Check If Files Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "a7243b99-1478-4b09-9f96-e28ab1176696",
+      "name": "Split Files for Processing",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1344,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "download",
+        "fileId": "={{$json.id}}",
+        "options": {}
+      },
+      "id": "e194eedb-beb7-4e1d-9dd8-e378a38ea5a4",
+      "name": "Download File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1024,
+        0
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "F47QejHJLM67peJR",
+          "name": "Google Drive account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare request for consolidated extract API\nconst fileData = $input.first().json;\nconst originalFile = $('Download File').first().json;\n//const batchInfo = $('Split Files for Processing').first().json;\nconst currentBatchItem = $('Split Files for Processing').context[\"currentRunIndex\"];\nconst totalItems = $('Test Google Drive List').all().length;\n\n// Generate unique message ID\nconst messageId = `gdrive-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;\n\n// Create request payload\nconst payload = {\n  message_text: 'Dame los recursos con más experiencia que tengamos en Ajax',\n  text: fileData.text,\n  file_name: originalFile.name,\n  file_url: originalFile.webViewLink || '',\n  processing_type: 'candidate_extraction',\n  extraction_source: 'google_drive',\n  total_files: totalItems,\n  file_number: currentBatchItem + 1,\n  teams_message_id: messageId,\n  channel_id: 'google-drive-processor',\n  user_id: 'system',\n  user_name: 'Google Drive Processor',\n  metadata: {\n    language: 'auto-detect',\n    format: 'resume',\n    source: 'google_drive',\n    file_id: originalFile.id,\n    file_size: originalFile.size,\n    created_time: originalFile.createdTime,\n    modified_time: originalFile.modifiedTime\n  }\n};\n\nreturn { json: payload };"
+      },
+      "id": "5019103d-8bcc-453c-bafc-7063bc5127de",
+      "name": "Prepare API Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://periodontic-corrin-unreturned.ngrok-free.dev/api/v1/extract/process",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-Key",
+              "value": "dev-api-key-12345"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "bc6efdeb-daee-4658-a27a-018bdb5832b5",
+      "name": "Call Consolidated Extract API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -384,
+        -16
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "VzJMNnlClWIacWWt",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process API response\nconst response = $input.first().json;\nconst requestData = $('Prepare API Request').first().json;\n\n// Extract key information\nconst result = {\n  success: response.status === 200,\n  file_name: requestData.file_name,\n  file_id: requestData.metadata.file_id,\n  status_code: response.status,\n  employee_id: response.candidate_result?.employee_id || null,\n  action: response.candidate_result?.action || 'unknown',\n  message: response.message || 'No message',\n  processing_time: response.candidate_result?.processing_time || 0,\n  processed_at: new Date().toISOString()\n};\n\n// Add matching results if available\nif (response.matching_result) {\n  result.matching = {\n    total_candidates: response.matching_result.total_candidates,\n    matches_found: response.matching_result.matches?.length || 0,\n    top_match: response.matching_result.matches?.[0]?.employee_name || 'None',\n    top_score: response.matching_result.matches?.[0]?.match_score || 0\n  };\n}\n\n// Add error information if failed\nif (response.status !== 200) {\n  result.error = response.error || 'Unknown error';\n}\n\nreturn { json: result };"
+      },
+      "id": "46137832-c133-4162-a0a3-298b575928fc",
+      "name": "Process Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate batch results\nconst allResults = $input.all();\nconst successful = allResults.filter(r => r.json.success);\nconst failed = allResults.filter(r => !r.json.success);\n\nconst summary = {\n  batch_id: `batch-${Date.now()}`,\n  total_files: allResults.length,\n  successful: successful.length,\n  failed: failed.length,\n  success_rate: allResults.length > 0 ? Math.round((successful.length / allResults.length) * 100) : 0,\n  employees_created: successful.filter(r => r.json.action === 'created').length,\n  employees_updated: successful.filter(r => r.json.action === 'updated').length,\n  total_matches: successful.reduce((sum, r) => sum + (r.json.matching?.matches_found || 0), 0),\n  avg_processing_time: successful.length > 0 ? Math.round(successful.reduce((sum, r) => sum + (r.json.processing_time || 0), 0) / successful.length) : 0,\n  processed_at: new Date().toISOString()\n};\n\nreturn { json: summary };"
+      },
+      "id": "05e66de8-2264-435f-8c4b-81fab2a2ede1",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Test the Google Drive output to see all available fields\nconst files = $input.first().json.files || [];\n\nconsole.log('Total files found:', files.length);\nconsole.log('Available fields in first file:', Object.keys(files[0] || {}));\n\n// Show detailed info for each file\nconst fileDetails = files.map(file => ({\n  id: file.id,\n  name: file.name,\n  mimeType: file.mimeType,\n  size: file.size,\n  webViewLink: file.webViewLink,\n  createdTime: file.createdTime,\n  modifiedTime: file.modifiedTime,\n  parents: file.parents\n}));\n\nreturn {\n  json: {\n    total_files: files.length,\n    files: fileDetails,\n    raw_output: $input.first().json\n  }\n};"
+      },
+      "id": "039e9ba8-f5e0-436f-bc40-286dded2ec4f",
+      "name": "Debug Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1408,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        -16
+      ],
+      "id": "b55aa8f9-7b66-4dde-931d-5ecbf83a0fad",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1248,
+        32
+      ],
+      "id": "000ebb9e-3510-4e5a-a9d7-6838c29c7a8a",
+      "name": "Loop Over Items"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Test Google Drive List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Google Drive List": {
+      "main": [
+        [
+          {
+            "node": "Check If Files Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Files Found": {
+      "main": [
+        [
+          {
+            "node": "Split Files for Processing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Debug Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Files for Processing": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare API Request": {
+      "main": [
+        [
+          {
+            "node": "Call Consolidated Extract API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Consolidated Extract API": {
+      "main": [
+        [
+          {
+            "node": "Process Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Response": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Prepare API Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "affa2900-0123-4fa0-a11d-f066b57a69be",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "94c09d7d77cf7fb16b5f9ae47120e898a74ae9a1a859791d2e0559060748ce71"
+  },
+  "id": "tOGBHbAqlXs8wpro",
+  "tags": [
+    {
+      "createdAt": "2025-09-30T21:20:00.030Z",
+      "updatedAt": "2025-09-30T21:20:00.030Z",
+      "id": "P4sGR4gtJrKVCIAF",
+      "name": "google-drive-file-reader"
+    },
+    {
+      "createdAt": "2025-10-01T18:56:03.021Z",
+      "updatedAt": "2025-10-01T18:56:03.021Z",
+      "id": "bvuCiu5DsG1OnSxW",
+      "name": "google-drive-processor"
+    },
+    {
+      "createdAt": "2025-10-01T19:18:02.769Z",
+      "updatedAt": "2025-10-01T19:18:02.769Z",
+      "id": "MshVq6khZ3LWwISQ",
+      "name": "test-gdrive"
+    }
+  ]
+}

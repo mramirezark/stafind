@@ -77,6 +77,21 @@ func (h *AIAgentHandlers) GetAIAgentRequest(c *fiber.Ctx) error {
 	return c.JSON(aiRequest)
 }
 
+// GetAIAgentRequestByTeamsMessageID returns a specific AI agent request by Teams message ID
+func (h *AIAgentHandlers) GetAIAgentRequestByTeamsMessageID(c *fiber.Ctx) error {
+	teamsMessageID := c.Params("teamsMessageId")
+	if teamsMessageID == "" {
+		return BadRequest(c, "Teams message ID is required")
+	}
+
+	aiRequest, err := h.aiAgentService.GetAIAgentRequestByTeamsMessageID(teamsMessageID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(ErrorResponse{Error: "AI agent request not found"})
+	}
+
+	return c.JSON(aiRequest)
+}
+
 // GetAIAgentResponse returns the AI agent response for a specific request ID
 func (h *AIAgentHandlers) GetAIAgentResponse(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -109,7 +124,7 @@ func (h *AIAgentHandlers) ProcessAIAgentRequestByID(c *fiber.Ctx) error {
 
 // ExtractSkills extracts skills from text
 func (h *AIAgentHandlers) ExtractSkills(c *fiber.Ctx) error {
-	var req models.SkillExtractionRequest
+	var req models.SkillExtractRequest
 	if err := c.BodyParser(&req); err != nil {
 		return BadRequest(c, err.Error())
 	}

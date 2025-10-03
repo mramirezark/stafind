@@ -240,8 +240,7 @@ func (h *BulkHandlers) convertToEmployeeModels(data []interface{}) ([]models.Emp
 			for _, skillData := range skillsData {
 				if skillMap, ok := skillData.(map[string]interface{}); ok {
 					skill := models.Skill{
-						Name:     getString(skillMap, "name"),
-						Category: getString(skillMap, "category"),
+						Name: getString(skillMap, "name"),
 					}
 					employee.Skills = append(employee.Skills, skill)
 				}

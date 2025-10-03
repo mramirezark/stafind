@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "12345678-1234-1234-1234-123456789012",
+  "packageName": "com.stafind.message-bridge",
+  "developer": {
+    "name": "Stafind",
+    "websiteUrl": "https://quiet-tanuki-ffe574.netlify.app",
+    "privacyUrl": "https://quiet-tanuki-ffe574.netlify.app/privacy",
+    "termsOfUseUrl": "https://quiet-tanuki-ffe574.netlify.app/terms"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "Message Bridge",
+    "full": "Stafind Message Bridge to n8n"
+  },
+  "description": {
+    "short": "Bridges Teams messages to n8n",
+    "full": "A Teams app that captures channel messages and sends them to n8n webhook for processing"
+  },
+  "accentColor": "#0078D4",
+  "staticTabs": [
+    {
+      "entityId": "message-bridge",
+      "name": "Message Bridge",
+      "contentUrl": "https://quiet-tanuki-ffe574.netlify.app/teams-app/index.html",
+      "websiteUrl": "https://quiet-tanuki-ffe574.netlify.app/teams-app/index.html",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["quiet-tanuki-ffe574.netlify.app"]
+}

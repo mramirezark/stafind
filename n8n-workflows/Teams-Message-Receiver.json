@@ -1,0 +1,151 @@
+{
+  "name": "TeamsExtract",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Process Teams message data\nconst inputData = $input.first().json;\n\nconsole.log('Received Teams message:', JSON.stringify(inputData, null, 2));\n\n// Extract relevant information from Teams message\nconst messageData = {\n  messageId: inputData.messageId || inputData.id || `msg_${Date.now()}`,\n  channelId: inputData.channelId || inputData.channel?.id || 'unknown',\n  userId: inputData.userId || inputData.from?.user?.id || 'unknown',\n  userName: inputData.userName || inputData.from?.user?.displayName || 'Unknown User',\n  messageText: inputData.messageText || inputData.text || inputData.body?.content || '',\n  timestamp: inputData.timestamp || inputData.createdDateTime || new Date().toISOString(),\n  channelName: inputData.channelName || inputData.channel?.displayName || 'Unknown Channel',\n  teamId: inputData.teamId || inputData.team?.id || 'unknown',\n  teamName: inputData.teamName || inputData.team?.displayName || 'Unknown Team',\n  messageType: inputData.messageType || 'text',\n  attachments: inputData.attachments || [],\n  mentions: inputData.mentions || [],\n  rawData: inputData\n};\n\n// Validate required fields\nif (!messageData.messageText || messageData.messageText.trim() === '') {\n  throw new Error('No message text found in Teams message');\n}\n\nconsole.log('Processed message data:', JSON.stringify(messageData, null, 2));\n\nreturn {\n  json: messageData\n};"
+      },
+      "id": "1b935ee4-5dc7-4e3e-9940-d14668bbb064",
+      "name": "Process Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{$json.messageText.toLowerCase()}}",
+              "rightValue": "resume",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "condition2",
+              "leftValue": "={{$json.messageText.toLowerCase()}}",
+              "rightValue": "candidate",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "condition3",
+              "leftValue": "={{$json.messageText.toLowerCase()}}",
+              "rightValue": "extract",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "condition4",
+              "leftValue": "={{$json.messageText.toLowerCase()}}",
+              "rightValue": "cv",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "8d9a226f-f392-495c-9372-2cd2ac594a54",
+      "name": "Check Extraction Keywords",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "teamId": {
+          "__rl": true,
+          "value": "88288437-6100-428b-aea2-d8f5e3cc2631",
+          "mode": "list",
+          "cachedResultName": "Mind Teams"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "19:738f71c350444c8ba581014598ba7565@thread.tacv2",
+          "mode": "list",
+          "cachedResultName": "Test JR",
+          "cachedResultUrl": "https://teams.cloud.microsoft/l/channel/19%3A738f71c350444c8ba581014598ba7565%40thread.tacv2/Test%20JR?groupId=88288437-6100-428b-aea2-d8f5e3cc2631&tenantId=8ea76cea-42a7-4f22-bb96-0d609fd73a9b&allowXTenantAccess=True&ngc=True"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftTeamsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        96
+      ],
+      "id": "ced3636e-8fbd-41c3-94d9-bdf76055eaa5",
+      "name": "Microsoft Teams Trigger",
+      "webhookId": "207bd6bb-2986-446a-a7e2-19dfe8572532",
+      "credentials": {
+        "microsoftTeamsOAuth2Api": {
+          "id": "HeTNVLeNGkoqPxqX",
+          "name": "Microsoft Teams account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Check Extraction Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Extraction Keywords": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "Microsoft Teams Trigger": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7e8f9910-61f5-4728-948c-05f6e724415c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "94c09d7d77cf7fb16b5f9ae47120e898a74ae9a1a859791d2e0559060748ce71"
+  },
+  "id": "hXzEnPx5MGB7220T",
+  "tags": []
+}

@@ -9,6 +9,7 @@
 export * from './features/employees'
 export * from './features/search'
 export * from './features/dashboard'
+export * from './features/skills'
 export * from './features/ai-agent'
 export * from './features/admin'
 

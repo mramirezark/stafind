@@ -67,7 +67,29 @@ export const endpoints = {
   // Skills
   skills: {
     list: () => api.get('/api/v1/skills'),
+    get: (id: number) => api.get(`/api/v1/skills/${id}`),
     create: (data: any) => api.post('/api/v1/skills', data),
+    update: (id: number, data: any) => api.put(`/api/v1/skills/${id}`, data),
+    delete: (id: number) => api.delete(`/api/v1/skills/${id}`),
+    search: (query: string) => api.get(`/api/v1/skills/search?q=${encodeURIComponent(query)}`),
+    popular: (limit?: number) => api.get(`/api/v1/skills/popular${limit ? `?limit=${limit}` : ''}`),
+    withCount: () => api.get('/api/v1/skills/with-count'),
+    stats: () => api.get('/api/v1/skills/stats'),
+    byCategory: (category: string) => api.get(`/api/v1/skills/category/${encodeURIComponent(category)}`),
+    byEmployee: (employeeId: number) => api.get(`/api/v1/skills/employee/${employeeId}`),
+    batch: {
+      create: (data: any[]) => api.post('/api/v1/skills/batch', data),
+      update: (data: any[]) => api.put('/api/v1/skills/batch', data),
+      delete: (ids: number[]) => api.delete('/api/v1/skills/batch', { data: { ids } }),
+    },
+  },
+  
+  // Categories
+  categories: {
+    list: () => api.get('/api/v1/skills/categories'),
+    create: (data: any) => api.post('/api/v1/skills/categories', data),
+    update: (id: number, data: any) => api.put(`/api/v1/skills/categories/${id}`, data),
+    delete: (id: number) => api.delete(`/api/v1/skills/categories/${id}`),
   },
   
   // Search

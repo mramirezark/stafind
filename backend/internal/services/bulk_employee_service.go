@@ -235,8 +235,7 @@ func (s *bulkEmployeeService) createEmployeeWithSkills(employee models.Employee)
 			if err != nil {
 				// Skill doesn't exist, create it
 				newSkill := &models.Skill{
-					Name:     skill.Name,
-					Category: skill.Category,
+					Name: skill.Name,
 				}
 				createdSkill, err := s.skillRepo.Create(newSkill)
 				if err != nil {
@@ -292,8 +291,7 @@ func (s *bulkEmployeeService) updateEmployeeWithSkills(employee models.Employee)
 			if err != nil {
 				// Skill doesn't exist, create it
 				newSkill := &models.Skill{
-					Name:     skill.Name,
-					Category: skill.Category,
+					Name: skill.Name,
 				}
 				createdSkill, err := s.skillRepo.Create(newSkill)
 				if err != nil {

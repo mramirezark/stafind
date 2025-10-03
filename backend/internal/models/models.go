@@ -6,24 +6,74 @@ import (
 
 // Employee represents an employee in the system
 type Employee struct {
-	ID             int       `json:"id" db:"id"`
-	Name           string    `json:"name" db:"name"`
-	Email          string    `json:"email" db:"email"`
-	Department     string    `json:"department" db:"department"`
-	Level          string    `json:"level" db:"level"`
-	Location       string    `json:"location" db:"location"`
-	Bio            string    `json:"bio" db:"bio"`
-	CurrentProject *string   `json:"current_project" db:"current_project"`
-	Skills         []Skill   `json:"skills,omitempty"`
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
+	ID                  int                    `json:"id" db:"id"`
+	Name                string                 `json:"name" db:"name"`
+	Email               string                 `json:"email" db:"email"`
+	Department          string                 `json:"department" db:"department"`
+	Level               string                 `json:"level" db:"level"`
+	Location            string                 `json:"location" db:"location"`
+	Bio                 string                 `json:"bio" db:"bio"`
+	CurrentProject      *string                `json:"current_project" db:"current_project"`
+	OriginalText        *string                `json:"original_text,omitempty" db:"original_text"`
+	ExtractedData       map[string]interface{} `json:"extracted_data,omitempty" db:"extracted_data"`
+	ExtractionTimestamp *time.Time             `json:"extraction_timestamp,omitempty" db:"extraction_timestamp"`
+	ExtractionSource    *string                `json:"extraction_source,omitempty" db:"extraction_source"`
+	ExtractionStatus    *string                `json:"extraction_status,omitempty" db:"extraction_status"`
+	Skills              []Skill                `json:"skills,omitempty"`
+	CreatedAt           time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time              `json:"updated_at" db:"updated_at"`
+}
+
+// Category represents a skill category
+type Category struct {
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
 }
 
 // Skill represents a technical skill
 type Skill struct {
-	ID       int    `json:"id" db:"id"`
-	Name     string `json:"name" db:"name"`
-	Category string `json:"category" db:"category"`
+	ID         int        `json:"id" db:"id"`
+	Name       string     `json:"name" db:"name"`
+	Categories []Category `json:"categories,omitempty"`
+}
+
+// SkillWithCount represents a skill with employee count
+type SkillWithCount struct {
+	Skill
+	EmployeeCount int `json:"employee_count" db:"employee_count"`
+}
+
+// SkillUpdate represents a skill update operation
+type SkillUpdate struct {
+	ID   int     `json:"id"`
+	Name *string `json:"name,omitempty"`
+}
+
+// SkillStats represents statistics about skills
+type SkillStats struct {
+	TotalSkills      int             `json:"total_skills"`
+	TotalCategories  int             `json:"total_categories"`
+	MostPopularSkill *Skill          `json:"most_popular_skill,omitempty"`
+	CategoryStats    []CategoryStats `json:"category_stats"`
+}
+
+// CategoryStats represents statistics for a skill category
+type CategoryStats struct {
+	Category      string `json:"category"`
+	SkillCount    int    `json:"skill_count"`
+	EmployeeCount int    `json:"employee_count"`
+}
+
+// SkillCategory represents the relationship between a skill and category
+type SkillCategory struct {
+	SkillID    int `json:"skill_id" db:"skill_id"`
+	CategoryID int `json:"category_id" db:"category_id"`
+}
+
+// CategoryWithSkillCount represents a category with skill count
+type CategoryWithSkillCount struct {
+	Category
+	SkillCount int `json:"skill_count" db:"skill_count"`
 }
 
 // EmployeeSkill represents the relationship between an employee and a skill
@@ -416,29 +466,33 @@ type CreateAIAgentRequest struct {
 	Skills      []string `json:"skills,omitempty"`
 }
 
-// SkillExtractionRequest represents a request to extract skills from text
-type SkillExtractionRequest struct {
+// SkillExtractRequest represents a request to extract skills from text
+type SkillExtractRequest struct {
 	Text string `json:"text" binding:"required"`
 }
 
-// SkillExtractionResponse represents the response from skill extraction
-type SkillExtractionResponse struct {
+// SkillExtractResponse represents the response from skill extraction
+type SkillExtractResponse struct {
 	Skills []string `json:"skills"`
 	Text   string   `json:"text"`
 }
 
-// LlamaAIRequest represents a request to process text with Llama AI
-type LlamaAIRequest struct {
+// ExtractAIRequest represents a request to process text with Llama AI
+type ExtractAIRequest struct {
+	TeamsMessageID string                 `json:"teams_message_id,omitempty"`
+	ChannelID      string                 `json:"channel_id,omitempty"`
+	UserID         string                 `json:"user_id,omitempty"`
+	UserName       string                 `json:"user_name,omitempty"`
+	MessageText    string                 `json:"message_text" binding:"required"`
 	Text           string                 `json:"text" binding:"required"`
-	ProcessingType string                 `json:"processing_type" binding:"required"` // candidate_extraction, search_analysis, candidate_matching
+	FileName       string                 `json:"file_name" binding:"required"`
+	FileURL        string                 `json:"file_url" binding:"required"`
+	ProcessingType string                 `json:"processing_type,omitempty"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
-	Language       string                 `json:"language,omitempty"`
-	MaxTokens      int                    `json:"max_tokens,omitempty"`
-	Temperature    float64                `json:"temperature,omitempty"`
 }
 
-// LlamaAIResponse represents the response from Llama AI processing
-type LlamaAIResponse struct {
+// ExtractAIResponse represents the response from Llama AI processing
+type ExtractAIResponse struct {
 	ProcessedContent string                 `json:"processed_content"`
 	ProcessingTime   time.Duration          `json:"processing_time"`
 	ModelUsed        string                 `json:"model_used"`
@@ -514,4 +568,62 @@ type CandidateMatchResult struct {
 	InterviewQuestions []string `json:"interview_questions"`
 	SalaryExpectation  string   `json:"salary_expectation"`
 	Availability       string   `json:"availability"`
+}
+
+// ConsolidatedExtractRequest represents a consolidated request for both AI agent and text extraction
+type ConsolidatedExtractRequest struct {
+	TeamsMessageID string  `json:"teams_message_id,omitempty"`
+	ChannelID      string  `json:"channel_id,omitempty"`
+	UserID         string  `json:"user_id,omitempty"`
+	UserName       string  `json:"user_name,omitempty"`
+	MessageText    string  `json:"message_text" binding:"required"` // The request text
+	AttachmentURL  *string `json:"attachment_url,omitempty"`
+
+	// Text Extraction fields
+	Text             string                 `json:"text" binding:"required"` // The extracted text to process
+	FileName         string                 `json:"file_name,omitempty"`
+	FileURL          string                 `json:"file_url,omitempty"`
+	ProcessingType   string                 `json:"processing_type,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	FileNumber       int                    `json:"file_number,omitempty"`
+	TotalFiles       int                    `json:"total_files,omitempty"`
+	ExtractionSource string                 `json:"extraction_source,omitempty"` // Source of extraction (resume, linkedin, etc.)
+}
+
+// CandidateExtractionResult represents the result of candidate extraction and storage
+type CandidateExtractionResult struct {
+	EmployeeID      int                    `json:"employee_id"`
+	Action          string                 `json:"action"` // "created", "updated", "no_changes"
+	Employee        *Employee              `json:"employee,omitempty"`
+	ExtractedData   map[string]interface{} `json:"extracted_data"`
+	ChangesDetected bool                   `json:"changes_detected"`
+	ChangesSummary  []string               `json:"changes_summary,omitempty"`
+	ProcessingTime  time.Duration          `json:"processing_time"`
+	Status          string                 `json:"status"`
+	Message         string                 `json:"message"`
+}
+
+// MatchingResult represents the result of candidate matching
+type MatchingResult struct {
+	Requirements    string              `json:"requirements"`
+	RequiredSkills  []string            `json:"required_skills"`
+	Matches         []MatchingCandidate `json:"matches"`
+	TotalCandidates int                 `json:"total_candidates"`
+	ProcessingTime  time.Duration       `json:"processing_time"`
+	Timestamp       time.Time           `json:"timestamp"`
+}
+
+// MatchingCandidate represents a single candidate match from the matching service
+type MatchingCandidate struct {
+	EmployeeID      int      `json:"employee_id"`
+	EmployeeName    string   `json:"employee_name"`
+	EmployeeEmail   string   `json:"employee_email"`
+	EmployeeLevel   string   `json:"employee_level"`
+	EmployeeSkills  []string `json:"employee_skills"`
+	MatchedSkills   []string `json:"matched_skills"`
+	MatchScore      int      `json:"match_score"`
+	MatchLevel      string   `json:"match_level"`
+	ExperienceMatch bool     `json:"experience_match"`
+	SkillsMatch     int      `json:"skills_match"`
+	TotalRequired   int      `json:"total_required"`
 }

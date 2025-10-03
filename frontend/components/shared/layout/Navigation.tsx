@@ -31,6 +31,7 @@ import {
   AccountCircle as AccountIcon,
   Logout as LogoutIcon,
   Settings as SettingsIcon,
+  Psychology as SkillsIcon,
 } from '@mui/icons-material'
 import { useAuth } from '@/lib/auth'
 import { NavigationProps } from '@/types'
@@ -38,6 +39,7 @@ import { NavigationProps } from '@/types'
 const navigationItems = [
   { key: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { key: 'employee', label: 'Employees', icon: <PersonAddIcon /> },
+  { key: 'skills', label: 'Skills', icon: <SkillsIcon /> },
   { key: 'ai-agent', label: 'AI Agent', icon: <AIAgentIcon /> },
   { key: 'admin', label: 'Admin', icon: <AdminIcon />, adminOnly: true },
 ]

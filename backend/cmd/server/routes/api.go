@@ -29,9 +29,25 @@ func SetupAPIRoutes(
 		// Search routes
 		api.Post("/search", h.SearchEmployees)
 
-		// Skill routes
+		// Skill routes - specific routes first, then wildcard routes
 		api.Get("/skills", h.GetSkills)
 		api.Post("/skills", h.CreateSkill)
+		api.Get("/skills/search", h.SearchSkills)
+		api.Get("/skills/popular", h.GetPopularSkills)
+		api.Get("/skills/with-count", h.GetSkillsWithCount)
+		api.Get("/skills/stats", h.GetSkillStats)
+
+		// Category routes - specific routes before wildcard
+		api.Get("/skills/categories", h.GetCategories)
+		api.Post("/skills/categories", h.CreateCategory)
+		api.Get("/skills/categories/:id", h.GetCategory)
+		api.Put("/skills/categories/:id", h.UpdateCategory)
+		api.Delete("/skills/categories/:id", h.DeleteCategory)
+
+		// Wildcard skill routes - must come after specific routes
+		api.Get("/skills/:id", h.GetSkill)
+		api.Put("/skills/:id", h.UpdateSkill)
+		api.Delete("/skills/:id", h.DeleteSkill)
 
 		// Role routes
 		api.Get("/roles", authHandlers.ListRoles)
@@ -43,6 +59,7 @@ func SetupAPIRoutes(
 		api.Get("/ai-agents/:id", h.AIAgentHandlers.GetAIAgentRequest)
 		api.Get("/ai-agents/:id/response", h.AIAgentHandlers.GetAIAgentResponse)
 		api.Post("/ai-agents/:id/process", h.AIAgentHandlers.ProcessAIAgentRequest)
+		api.Post("/ai-agent/process", h.AIAgentHandlers.ProcessAIAgentRequest)
 		api.Post("/ai-agents/:id/process-by-id", h.AIAgentHandlers.ProcessAIAgentRequestByID)
 		api.Post("/ai-agents/extract-skills", h.AIAgentHandlers.ExtractSkills)
 
