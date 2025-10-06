@@ -1,0 +1,272 @@
+# CV Extract Queries Configuration
+
+queries:
+  # CV Extract-related queries
+  cv_extract:
+    create_cv_extract:
+      description: "Create a new CV extraction record"
+      category: "cv_extract"
+      operation: "insert"
+      parameters:
+        - name: "status"
+          type: "string"
+          required: true
+          description: "Status of the extraction process"
+        - name: "num_files"
+          type: "int"
+          required: true
+          description: "Total number of files to process"
+        - name: "files_processed"
+          type: "int"
+          required: false
+          description: "Number of files processed"
+        - name: "files_failed"
+          type: "int"
+          required: false
+          description: "Number of files that failed"
+        - name: "total_processing_time_ms"
+          type: "int64"
+          required: false
+          description: "Total processing time in milliseconds"
+        - name: "average_processing_time_ms"
+          type: "int64"
+          required: false
+          description: "Average processing time per file in milliseconds"
+        - name: "started_at"
+          type: "timestamp"
+          required: false
+          description: "When the extraction started"
+        - name: "completed_at"
+          type: "timestamp"
+          required: false
+          description: "When the extraction completed"
+        - name: "error_message"
+          type: "string"
+          required: false
+          description: "Error message if failed"
+        - name: "metadata"
+          type: "json"
+          required: false
+          description: "Additional metadata as JSON"
+      tags: ["cv_extract", "create", "insert"]
+      sql_file: "cv_extract.sql"
+      
+    get_cv_extract_by_id:
+      description: "Get CV extraction record by ID"
+      category: "cv_extract"
+      operation: "select"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "CV extraction ID"
+      tags: ["cv_extract", "single", "by_id"]
+      sql_file: "cv_extract.sql"
+      
+    get_cv_extract_by_request_id:
+      description: "Get CV extraction record by extract request ID"
+      category: "cv_extract"
+      operation: "select"
+      parameters:
+        - name: "extract_request_id"
+          type: "string"
+          required: true
+          description: "Extract request ID"
+      tags: ["cv_extract", "single", "by_request_id"]
+      sql_file: "cv_extract.sql"
+      
+    upsert_cv_extract:
+      description: "Upsert CV extraction record (insert or update)"
+      category: "cv_extract"
+      operation: "upsert"
+      parameters:
+        - name: "extract_request_id"
+          type: "string"
+          required: true
+          description: "Extract request ID"
+        - name: "status"
+          type: "string"
+          required: true
+          description: "Status of the extraction process"
+        - name: "num_files"
+          type: "int"
+          required: true
+          description: "Total number of files to process"
+        - name: "files_processed"
+          type: "int"
+          required: false
+          description: "Number of files processed"
+        - name: "files_failed"
+          type: "int"
+          required: false
+          description: "Number of files that failed"
+        - name: "total_processing_time_ms"
+          type: "int64"
+          required: false
+          description: "Total processing time in milliseconds"
+        - name: "average_processing_time_ms"
+          type: "int64"
+          required: false
+          description: "Average processing time per file in milliseconds"
+        - name: "started_at"
+          type: "timestamp"
+          required: false
+          description: "When the extraction started"
+        - name: "completed_at"
+          type: "timestamp"
+          required: false
+          description: "When the extraction completed"
+        - name: "error_message"
+          type: "string"
+          required: false
+          description: "Error message if failed"
+        - name: "metadata"
+          type: "json"
+          required: false
+          description: "Additional metadata as JSON"
+      tags: ["cv_extract", "upsert", "insert_or_update"]
+      sql_file: "cv_extract.sql"
+      
+    update_cv_extract:
+      description: "Update CV extraction record"
+      category: "cv_extract"
+      operation: "update"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "CV extraction ID"
+        - name: "status"
+          type: "string"
+          required: false
+          description: "Updated status"
+        - name: "files_processed"
+          type: "int"
+          required: false
+          description: "Number of files processed"
+        - name: "files_failed"
+          type: "int"
+          required: false
+          description: "Number of files that failed"
+        - name: "total_processing_time_ms"
+          type: "int64"
+          required: false
+          description: "Total processing time in milliseconds"
+        - name: "average_processing_time_ms"
+          type: "int64"
+          required: false
+          description: "Average processing time per file in milliseconds"
+        - name: "completed_at"
+          type: "timestamp"
+          required: false
+          description: "When the extraction completed"
+        - name: "error_message"
+          type: "string"
+          required: false
+          description: "Error message if failed"
+        - name: "metadata"
+          type: "json"
+          required: false
+          description: "Additional metadata as JSON"
+      tags: ["cv_extract", "update"]
+      sql_file: "cv_extract.sql"
+      
+    list_cv_extract:
+      description: "List CV extraction records with pagination"
+      category: "cv_extract"
+      operation: "select"
+      parameters:
+        - name: "status"
+          type: "string"
+          required: false
+          description: "Filter by status"
+        - name: "start_date"
+          type: "timestamp"
+          required: false
+          description: "Filter by start date (from)"
+        - name: "end_date"
+          type: "timestamp"
+          required: false
+          description: "Filter by end date (to)"
+        - name: "limit"
+          type: "int"
+          required: true
+          description: "Number of records to return"
+        - name: "offset"
+          type: "int"
+          required: true
+          description: "Number of records to skip"
+      tags: ["cv_extract", "list", "pagination"]
+      sql_file: "cv_extract.sql"
+      
+    count_cv_extract:
+      description: "Count CV extraction records"
+      category: "cv_extract"
+      operation: "select"
+      parameters:
+        - name: "status"
+          type: "string"
+          required: false
+          description: "Filter by status"
+        - name: "start_date"
+          type: "timestamp"
+          required: false
+          description: "Filter by start date (from)"
+        - name: "end_date"
+          type: "timestamp"
+          required: false
+          description: "Filter by end date (to)"
+      tags: ["cv_extract", "count"]
+      sql_file: "cv_extract.sql"
+      
+    get_cv_extract_stats:
+      description: "Get CV extraction statistics"
+      category: "cv_extract"
+      operation: "select"
+      parameters:
+        - name: "start_date"
+          type: "timestamp"
+          required: false
+          description: "Filter by start date (from)"
+        - name: "end_date"
+          type: "timestamp"
+          required: false
+          description: "Filter by end date (to)"
+      tags: ["cv_extract", "stats", "analytics"]
+      sql_file: "cv_extract.sql"
+      
+    get_recent_cv_extract:
+      description: "Get recent CV extraction records"
+      category: "cv_extract"
+      operation: "select"
+      parameters:
+        - name: "limit"
+          type: "int"
+          required: true
+          description: "Number of recent records to return"
+      tags: ["cv_extract", "recent"]
+      sql_file: "cv_extract.sql"
+      
+    delete_cv_extract:
+      description: "Delete CV extraction record"
+      category: "cv_extract"
+      operation: "delete"
+      parameters:
+        - name: "id"
+          type: "int"
+          required: true
+          description: "CV extraction ID to delete"
+      tags: ["cv_extract", "delete"]
+      sql_file: "cv_extract.sql"
+      
+    get_cv_extract_by_status:
+      description: "Get CV extraction records by status"
+      category: "cv_extract"
+      operation: "select"
+      parameters:
+        - name: "status"
+          type: "string"
+          required: true
+          description: "Status to filter by"
+      tags: ["cv_extract", "filter", "by_status"]
+      sql_file: "cv_extract.sql"

@@ -234,6 +234,8 @@ func (d *DatabaseSkillExtractor) extractSkillsWithRegex(text string, skills *Ext
 		`\b[A-Z][a-z]+(?:\.[A-Z][a-z]+)*\b`, // Capitalized words (React.js, Node.js)
 		`\b[a-z]+(?:\.[a-z]+)*\b`,           // Lowercase words (mysql, redis)
 		`\b[A-Z]{2,}\b`,                     // Acronyms (AWS, API, SQL)
+		`\b[A-Za-z]+[#+]\b`,                 // Languages with special chars (C#, C++, F#)
+		`\b[A-Za-z]+\.NET\b`,                // .NET technologies (VB.NET, C#.NET)
 	}
 
 	for _, pattern := range patterns {
@@ -269,6 +271,19 @@ func normalizeSkillName(name string) string {
 	// Remove common prefixes/suffixes and normalize
 	normalized := strings.ToLower(name)
 	normalized = strings.TrimSpace(normalized)
+
+	// Handle special cases for programming languages with special characters
+	// C# should remain as "c#" (not "c")
+	if normalized == "c#" {
+		return "c#"
+	}
+
+	// Handle other special cases
+	if normalized == "f#" {
+		return "f#"
+	}
+
+	// For other skills, remove common separators but preserve special characters for languages
 	normalized = strings.ReplaceAll(normalized, ".", "")
 	normalized = strings.ReplaceAll(normalized, "-", "")
 	normalized = strings.ReplaceAll(normalized, "_", "")
@@ -302,8 +317,8 @@ func (d *DatabaseSkillExtractor) isLikelySkill(text string) bool {
 		return false
 	}
 
-	// Check if it's mostly alphanumeric
-	alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9\s\-_.]+$`)
+	// Check if it's mostly alphanumeric (including common programming language characters)
+	alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9\s\-_.#+]+$`)
 	if !alphanumeric.MatchString(text) {
 		return false
 	}

@@ -445,3 +445,27 @@ func (r *skillRepository) GetSkillCategories(skillID int) ([]models.Category, er
 
 	return categories, nil
 }
+
+func (r *skillRepository) AssociateCategories(skillID int, categoryIDs []int) error {
+	if len(categoryIDs) == 0 {
+		return nil
+	}
+
+	// First, remove existing associations
+	query := r.MustGetQuery("remove_all_skill_categories")
+	_, err := r.db.Exec(query, skillID)
+	if err != nil {
+		return err
+	}
+
+	// Then add new associations
+	query = r.MustGetQuery("add_skill_to_category")
+	for _, categoryID := range categoryIDs {
+		_, err := r.db.Exec(query, skillID, categoryID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

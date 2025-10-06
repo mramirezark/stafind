@@ -41,11 +41,12 @@ func (r *matchRepository) GetAll() ([]models.Match, error) {
 		var matchingSkillsJSON string
 		var employee models.Employee
 		var currentProject sql.NullString
+		var resumeUrl sql.NullString
 
 		err := rows.Scan(
 			&match.ID, &match.EmployeeID, &match.MatchScore, &matchingSkillsJSON, &match.Notes, &match.CreatedAt,
 			&employee.ID, &employee.Name, &employee.Email, &employee.Department, &employee.Level,
-			&employee.Location, &employee.Bio, &currentProject, &employee.CreatedAt, &employee.UpdatedAt,
+			&employee.Location, &employee.Bio, &currentProject, &resumeUrl, &employee.CreatedAt, &employee.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -59,6 +60,11 @@ func (r *matchRepository) GetAll() ([]models.Match, error) {
 		// Handle current project
 		if currentProject.Valid {
 			employee.CurrentProject = &currentProject.String
+		}
+
+		// Handle resume URL
+		if resumeUrl.Valid {
+			employee.ResumeUrl = &resumeUrl.String
 		}
 
 		match.Employee = employee

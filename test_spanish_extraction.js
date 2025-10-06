@@ -1,44 +1,113 @@
 // Test Spanish candidate extraction
 const testSpanishResume = `
-María González
-Desarrolladora Senior de Software
-maria.gonzalez@email.com
-+34 612 345 678
-Madrid, España
+Servicios rest - Desarrollo de APIS / Web services
+Arquitectura de base de datos
+Business Intelligence y modelado de datos
+Gestión y mejora de procesos
+Á R E A S D E E S P E C I A L I Z A C I Ó N
+GUSTAVO
+GARRIDO
+Especialista en procesos vinculado al desarrollo de aplicaciones
+e inteligencia de negocios. Soy un apasionado por la tecnología
+y la mejora. Mi mayor fortaleza es la versatilidad y capacidad
+de entender los sistemas desde la visión del negocio. Cada
+proyecto lo veo como un desafío para fortalecer mis habilidades
+como desarrollador y gestor.
+COORDINADOR DE PROCESOS Y LIDER DE
+IMPLEMENTACIÓN
+Análisis y relevamiento técnico para poder llevar a cabo la
+transformación digital de procesos.
+Lider de proyectos de implementación de software y mejora de
+procesos.
+Implementación de soluciones de ETL (Extracción, Transformación y
+Carga de Datos)
+Desarrollo de software para procesos complementarios
+Soporte técnico a equipo BI
+Desarrollo y e implementación de CRM para gestión de reclamos. -
+backend desarrollador en node JS frontend desarrollado en Angular.
+Implementación de software en todos los procesos ambulatorios.
+Armado y publicación de SUITE de reportes en Qliksense con acceso a
+los datos e información de todos los sistemas implementados en la
+organización.
+Principales logros:
+H O S P I T A L S A N J U A N D E D I O S | J U N I O 2 0 1 6 - P R E S E N T E
+T R A Y E C T O R I A P R O F E S I O N A L
+Wenceslao de tata
+4672, caseros,
+Provincia de buenos
+aires
+ingindustrial.gustavo@gmail.c
+om
+https://www.linkedin.co
+m/in/gustavo-garrido-
+96694393/:
+@unsitiogenial
++54 11-2403-3763
+F U L L S T A C K
+D E V E L O P E R
+COORDINADOR DE PROYECTOS Y CONSULTOR SR
+Lider de equipo para la implementación de proyectos de mejora de
+procesos
+Certificación norma API Spec Q1 en empresa de fabricación de valvulas
+bridadas.
+Implementación de proceso justing time en empresa de fabricación de
+jugos.
+Principales logros:
+G E S T I Ó N 3 6 0 | J U L I O 2 0 1 4 - J U N I O 2 0 1 6
+D a t o s d e
+c o n t a c t o
 
-EXPERIENCIA PROFESIONAL
-Desarrolladora Senior - TechCorp (2020-2024)
-• 4 años de experiencia desarrollando aplicaciones web con React y Node.js
-• Liderazgo de equipos de desarrollo ágiles
-• Experiencia con AWS, Docker y Kubernetes
-• Comunicación efectiva con stakeholders internacionales
-
-Desarrolladora Full Stack - StartupXYZ (2018-2020)
-• 2 años desarrollando aplicaciones con Python, Django y PostgreSQL
-• Trabajo en equipo en metodologías Scrum
-• Resolución de problemas complejos de rendimiento
-
-HABILIDADES TÉCNICAS
-Lenguajes de Programación: JavaScript, TypeScript, Python, Java, Go
-Tecnologías Web: React, Angular, Vue.js, Node.js, Express, Django
-Bases de Datos: PostgreSQL, MongoDB, Redis, Elasticsearch
-Cloud y DevOps: AWS, Azure, Docker, Kubernetes, Jenkins, Terraform
-Herramientas: Git, GitHub, GitLab, Jira, Confluence
-
-HABILIDADES BLANDAS
-• Liderazgo y gestión de equipos
-• Comunicación efectiva
-• Trabajo en equipo
-• Resolución de problemas
-• Pensamiento analítico
-• Creatividad e innovación
-• Adaptabilidad
-• Gestión del tiempo
-• Mentoring de desarrolladores junior
-
-EDUCACIÓN
-Ingeniería en Sistemas - Universidad Politécnica de Madrid (2014-2018)
-Certificación AWS Solutions Architect (2021)
+UNIVERSIDAD TECNOLÓGICA NACIONAL -
+ARGENTINA
+E S P E C I A L I S T A E N I N G E N I E R Í A E N C A L I D A D , P R O M O C I Ó N
+D E 2 0 1 8
+F O R M A C I Ó N A C A D É M I C A
+C O M P E T E N C I A S T E C N I C A S
+UNIVERSIDAD DEL MAGDALENA - COLOMBIA
+I N G E N I E R O I N D U S T R I A L , P R O M O C I Ó N D E 2 0 1 2
+UNIVERSIDAD TECNOLÓGICA NACIONAL -
+ARGENTINA
+I O N I C 6 - C R E A R A P L I C A C I O N E S I O S , A N D R O I D Y P W A C O N
+A N G U L A R - 2 0 2 0
+F U L L S T A C K D E V E L O P E R 2 0 1 9
+TUV RHEINLAND
+A U D I T O R L I D E R E N S I S T E M A S D E G E S T I Ó N D E L A C A L I D A D
+I S O 9 0 0 1
+UNIVERSIDAD DEL MAGDALENA - COLOMBIA
+D I P L O M A T U R A G E S T I Ó N D E P R O Y E C T O S , P R O M O C I Ó N D E
+2 0 1 1
+C U R S O S Y O T R A S
+F O R M A C I O N E S
+Python Avanzado
+R avanzado
+React Avanzado
+AWS avanzado
+Testing unitario
+Ingles Oral y
+escrito Avanzado
+con examen toefl
+aprobado
+Plan de carrera
+para los proximos 2
+años
+Idiomas:
+Ingles:
+lectura: Avanzado
+Escritura: Intermedio
+Oral: Intermedio
+Node JS
+Angular
+Git
+SLQ en motores PL/SQL, MySQL, SQL SERVER
+Typescript
+Javascript
+HTML
+CSS
+Procesos ETL
+QLiksence
+UNIVERSIDAD TECNOLÓGICA NACIONAL -
+ARGENTINA
+P R O G R A M A D O R W E B F R O N T E N D 2 0 1 9
 `;
 
 async function testSpanishExtraction() {

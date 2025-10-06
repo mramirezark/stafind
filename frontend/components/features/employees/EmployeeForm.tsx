@@ -63,7 +63,6 @@ export function EmployeeForm({
         <TextField
           fullWidth
           label="Email"
-          type="email"
           value={localFormData.email}
           onChange={handleInputChange('email')}
           required

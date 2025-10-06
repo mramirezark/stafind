@@ -5,37 +5,91 @@ async function testCandidateExtraction() {
     // Test data for candidate extraction
     const testData = {
         message_text: "I need a senior Python developer with React experience for a new project",
-        text: `John Smith
-Senior Python Developer
-Email: john.smith@email.com
-Phone: +1-555-0123
-Location: San Francisco, CA
+        text: `Jesus Manuel Ramirez Mendez
+Senior Software Engineer with over 15 years of experience in developing scalable web applications and
+backend services working with clients from both the US and Mexico. Strong problem-solving skills and
+innovative developer with a passion for building scalable, efficient, user-centric software solutions using
+modern technology stacks. Collaborative team player with experience in Agile methodologies.
+SKILLS
+● Programming languages
+○ 10 years: Java, JavaScript, SQL
+○ 5 years: C#, VB, TypeScript
+● Frameworks
+○ 7 years: Spring Boot
+○ 
+5 years: Angular, jQuery, ExtJs, ASP.NET Core
+○ 
+1 year: React, Node.js
+● Database
+○ 7 years: PostgreSQL, SQL Server, MySQL
+○ 5 years: Oracle
+○ 1 year: Apache Cassandra, Kinetica
+● Development tools
+○ 10 years: Eclipse, IntelliJ
+○ 5 years: Visual Studio, VS Code
+● Version Control
+○ 7 years: Git, Github, Bitbucket, SVN
+● Others
+○ 10 years: Layered Architecture, RESTful APIs, HTML, CSS, Maven
+○ 7 years: Postman, Microservices, Docker, Scrum, Kanban, JIRA
+EXPERIENCE
+ArkusNexus
+Senior Software Engineer | Nov 2018 - Present
+● 
+Developed and optimized a full-stack application using React and TypeScript, increasing efficiency
+through code refactoring and performance enhancements using some AI tools.
+● 
+Developed and maintained robust web applications, microservices and RESTful APIs with Spring Boot.
+● 
+Optimized backend processes with Spring Boot, resulting in a several reduction in server response
+times.
+● 
+Collaborated with cross-functional teams in Agile (Scrum/Kanban) sprints to plan and analyze the
+implementation of new features and functionalities within deadlines.
+● 
+Identified and resolved complex software issues and enhanced overall reliability.
+● 
+Performed unit, integration, performance, and E2E testing reducing post-deployment defects.
+● 
+Analyze, prototyping and implementing new features on schedule.
+Prianti Consulting
+Senior Software Engineer | Jan 2023 - Nov 2018
+● 
+Developed, maintained, and deployed high-performance web applications using Java (Spring MVC,
+JEE), ExtJS, and JavaScript, improving user experience through responsive UI optimizations.
+● 
+Partnered with product to gather requirements, prototype solutions, and launch new features.
+● 
+Designed and optimized RESTful APIs with Spring MVC enabling seamless integration across multiple
+internal applications.
+● 
+Conducted extensive testing and quality assurance.
+● 
+Analyze, prototyping and implementing new modules for internal applications.
 
-EXPERIENCE:
-- 5 years of experience in Python development
-- 3 years with React and JavaScript
-- Experience with Django, Flask, FastAPI
-- Database: PostgreSQL, MongoDB
-- Cloud: AWS, Docker, Kubernetes
-- Version Control: Git, GitHub
-
-EDUCATION:
-- Bachelor's in Computer Science from Stanford University (2018)
-
-SKILLS:
-- Programming Languages: Python, JavaScript, TypeScript, SQL
-- Frameworks: Django, Flask, React, Node.js
-- Databases: PostgreSQL, MongoDB, Redis
-- Cloud & DevOps: AWS, Docker, Kubernetes, CI/CD
-- Tools: Git, GitHub, Jira, Slack
-
-CURRENT PROJECT:
-- Leading development of microservices architecture for e-commerce platform
-- Team size: 8 developers
-- Technologies: Python, React, PostgreSQL, AWS
-
-SUMMARY:
-Experienced full-stack developer with strong background in Python and modern web technologies. Proven track record of delivering scalable solutions and leading development teams.`,
+Hildebrando
+Senior Software Engineer | Apr 2012 - Dec 2012
+● 
+Developed and maintained internal web applications using .NET Technologies.
+● 
+Performed user acceptance testing (UAT) with cross-functional teams to validate business
+requirements.
+Interfactura
+Senior Software Engineer | Dic 2008 - Mar 2012
+● 
+Designed, developed, and deployed full-stack web applications using .NET Technologies and
+JavaScript.
+● 
+Partnered with product managers, business analysts to gather requirements, analyze feasibility, and
+implement new features, improving user efficiency.
+● 
+Engineered high-performance Windows Services to automate massive invoice generation cutting
+processing time.
+● 
+Conducted unit, integration, and E2E testing reducing post-deployment defects.
+EDUCATION
+● 
+Instituto Tecnologico de Zacatecas / Ingeniero en Sistemas Computacionales 2001-2005`,
         file_name: "john_smith_resume.pdf",
         file_url: "https://example.com/resumes/john_smith.pdf",
         processing_type: "candidate_extraction",
@@ -99,38 +153,91 @@ async function testUpdateExistingEmployee() {
     // Test data with updated information
     const testData = {
         message_text: "Update search for JavaScript developers",
-        text: `John Smith
-Senior Full-Stack Developer
-Email: john.smith@email.com
-Phone: +1-555-0123
-Location: San Francisco, CA
+        text: `Jesus Manuel Ramirez Mendez
+Senior Software Engineer with over 15 years of experience in developing scalable web applications and
+backend services working with clients from both the US and Mexico. Strong problem-solving skills and
+innovative developer with a passion for building scalable, efficient, user-centric software solutions using
+modern technology stacks. Collaborative team player with experience in Agile methodologies.
+SKILLS
+● Programming languages
+○ 10 years: Java, JavaScript, SQL
+○ 5 years: C#, VB, TypeScript
+● Frameworks
+○ 7 years: Spring Boot
+○ 
+5 years: Angular, jQuery, ExtJs, ASP.NET Core
+○ 
+1 year: React, Node.js
+● Database
+○ 7 years: PostgreSQL, SQL Server, MySQL
+○ 5 years: Oracle
+○ 1 year: Apache Cassandra, Kinetica
+● Development tools
+○ 10 years: Eclipse, IntelliJ
+○ 5 years: Visual Studio, VS Code
+● Version Control
+○ 7 years: Git, Github, Bitbucket, SVN
+● Others
+○ 10 years: Layered Architecture, RESTful APIs, HTML, CSS, Maven
+○ 7 years: Postman, Microservices, Docker, Scrum, Kanban, JIRA
+EXPERIENCE
+ArkusNexus
+Senior Software Engineer | Nov 2018 - Present
+● 
+Developed and optimized a full-stack application using React and TypeScript, increasing efficiency
+through code refactoring and performance enhancements using some AI tools.
+● 
+Developed and maintained robust web applications, microservices and RESTful APIs with Spring Boot.
+● 
+Optimized backend processes with Spring Boot, resulting in a several reduction in server response
+times.
+● 
+Collaborated with cross-functional teams in Agile (Scrum/Kanban) sprints to plan and analyze the
+implementation of new features and functionalities within deadlines.
+● 
+Identified and resolved complex software issues and enhanced overall reliability.
+● 
+Performed unit, integration, performance, and E2E testing reducing post-deployment defects.
+● 
+Analyze, prototyping and implementing new features on schedule.
+Prianti Consulting
+Senior Software Engineer | Jan 2023 - Nov 2018
+● 
+Developed, maintained, and deployed high-performance web applications using Java (Spring MVC,
+JEE), ExtJS, and JavaScript, improving user experience through responsive UI optimizations.
+● 
+Partnered with product to gather requirements, prototype solutions, and launch new features.
+● 
+Designed and optimized RESTful APIs with Spring MVC enabling seamless integration across multiple
+internal applications.
+● 
+Conducted extensive testing and quality assurance.
+● 
+Analyze, prototyping and implementing new modules for internal applications.
 
-EXPERIENCE:
-- 6 years of experience in Python and JavaScript development
-- 4 years with React and TypeScript
-- Experience with Django, Flask, FastAPI, Next.js
-- Database: PostgreSQL, MongoDB, Redis
-- Cloud: AWS, Azure, Docker, Kubernetes
-- Version Control: Git, GitHub, GitLab
-
-EDUCATION:
-- Bachelor's in Computer Science from Stanford University (2018)
-- AWS Certified Solutions Architect (2023)
-
-SKILLS:
-- Programming Languages: Python, JavaScript, TypeScript, SQL, Go
-- Frameworks: Django, Flask, React, Next.js, Node.js, Express
-- Databases: PostgreSQL, MongoDB, Redis, Elasticsearch
-- Cloud & DevOps: AWS, Azure, Docker, Kubernetes, CI/CD, Terraform
-- Tools: Git, GitHub, GitLab, Jira, Slack, Figma
-
-CURRENT PROJECT:
-- Leading development of microservices architecture for e-commerce platform
-- Team size: 12 developers
-- Technologies: Python, React, Next.js, PostgreSQL, AWS, Docker
-
-SUMMARY:
-Experienced full-stack developer with strong background in Python and modern web technologies. Recently expanded expertise to include Go and additional cloud platforms. Proven track record of delivering scalable solutions and leading development teams.`,
+Hildebrando
+Senior Software Engineer | Apr 2012 - Dec 2012
+● 
+Developed and maintained internal web applications using .NET Technologies.
+● 
+Performed user acceptance testing (UAT) with cross-functional teams to validate business
+requirements.
+Interfactura
+Senior Software Engineer | Dic 2008 - Mar 2012
+● 
+Designed, developed, and deployed full-stack web applications using .NET Technologies and
+JavaScript.
+● 
+Partnered with product managers, business analysts to gather requirements, analyze feasibility, and
+implement new features, improving user efficiency.
+● 
+Engineered high-performance Windows Services to automate massive invoice generation cutting
+processing time.
+● 
+Conducted unit, integration, and E2E testing reducing post-deployment defects.
+EDUCATION
+● 
+Instituto Tecnologico de Zacatecas / Ingeniero en Sistemas Computacionales 2001-2005`,
         file_name: "john_smith_resume_updated.pdf",
         file_url: "https://example.com/resumes/john_smith_updated.pdf",
         processing_type: "candidate_extraction",

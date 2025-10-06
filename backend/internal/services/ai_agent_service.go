@@ -358,7 +358,7 @@ func (s *aiAgentService) generateMatchExplanations(matches []models.Match, extra
 			Seniority:      match.Employee.Level,
 			Location:       match.Employee.Location,
 			CurrentProject: s.getCurrentProject(match.Employee.CurrentProject),
-			ResumeLink:     s.getResumeLink(match.EmployeeID),
+			ResumeLink:     s.getResumeLink(match.Employee),
 			MatchScore:     match.MatchScore,
 			MatchingSkills: match.MatchingSkills,
 			AISummary:      s.generateAISummary(match, extractedSkills),
@@ -467,11 +467,13 @@ func (s *aiAgentService) deduplicateSkills(skills []string) []string {
 }
 
 // getResumeLink retrieves the resume link for an employee
-func (s *aiAgentService) getResumeLink(employeeID int) string {
-	// For now, return a placeholder URL
-	// In a real implementation, you would query the uploaded_files table
-	// to find the most recent resume for this employee
-	return fmt.Sprintf("/api/v1/files/resume/%d", employeeID)
+func (s *aiAgentService) getResumeLink(employee models.Employee) string {
+	// Return the actual resume URL from the employee record
+	if employee.ResumeUrl != nil && *employee.ResumeUrl != "" {
+		return *employee.ResumeUrl
+	}
+	// Fallback to a placeholder if no resume URL is available
+	return fmt.Sprintf("/api/v1/files/resume/%d", employee.ID)
 }
 
 // getPositionFromDepartment maps department to position title

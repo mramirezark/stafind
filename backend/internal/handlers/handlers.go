@@ -131,12 +131,12 @@ func (h *Handlers) GetSkills(c *fiber.Ctx) error {
 
 // CreateSkill creates a new skill
 func (h *Handlers) CreateSkill(c *fiber.Ctx) error {
-	var skill models.Skill
-	if err := c.BodyParser(&skill); err != nil {
+	var req models.CreateSkillRequest
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	createdSkill, err := h.skillService.CreateSkill(&skill)
+	createdSkill, err := h.skillService.CreateSkillWithCategories(&req)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Skill already exists"})
@@ -167,12 +167,12 @@ func (h *Handlers) UpdateSkill(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid skill ID"})
 	}
 
-	var skill models.Skill
-	if err := c.BodyParser(&skill); err != nil {
+	var req models.CreateSkillRequest
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	updatedSkill, err := h.skillService.UpdateSkill(id, &skill)
+	updatedSkill, err := h.skillService.UpdateSkillWithCategories(id, &req)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Skill already exists"})

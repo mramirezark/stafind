@@ -14,6 +14,7 @@ type Employee struct {
 	Location            string                 `json:"location" db:"location"`
 	Bio                 string                 `json:"bio" db:"bio"`
 	CurrentProject      *string                `json:"current_project" db:"current_project"`
+	ResumeUrl           *string                `json:"resume_url,omitempty" db:"resume_url"`
 	OriginalText        *string                `json:"original_text,omitempty" db:"original_text"`
 	ExtractedData       map[string]interface{} `json:"extracted_data,omitempty" db:"extracted_data"`
 	ExtractionTimestamp *time.Time             `json:"extraction_timestamp,omitempty" db:"extraction_timestamp"`
@@ -35,6 +36,12 @@ type Skill struct {
 	ID         int        `json:"id" db:"id"`
 	Name       string     `json:"name" db:"name"`
 	Categories []Category `json:"categories,omitempty"`
+}
+
+// CreateSkillRequest represents a skill creation request
+type CreateSkillRequest struct {
+	Name       string `json:"name" db:"name"`
+	Categories []int  `json:"categories,omitempty"`
 }
 
 // SkillWithCount represents a skill with employee count
@@ -347,6 +354,7 @@ type CreateEmployeeRequest struct {
 	Location       string             `json:"location"`
 	Bio            string             `json:"bio"`
 	CurrentProject string             `json:"current_project"`
+	ResumeUrl      string             `json:"resume_url"`
 	Skills         []EmployeeSkillReq `json:"skills"`
 }
 
@@ -570,24 +578,16 @@ type CandidateMatchResult struct {
 	Availability       string   `json:"availability"`
 }
 
-// ConsolidatedExtractRequest represents a consolidated request for both AI agent and text extraction
-type ConsolidatedExtractRequest struct {
-	TeamsMessageID string  `json:"teams_message_id,omitempty"`
-	ChannelID      string  `json:"channel_id,omitempty"`
-	UserID         string  `json:"user_id,omitempty"`
-	UserName       string  `json:"user_name,omitempty"`
-	MessageText    string  `json:"message_text" binding:"required"` // The request text
-	AttachmentURL  *string `json:"attachment_url,omitempty"`
-
-	// Text Extraction fields
+// ExtractProcessRequest represents a request for both AI agent and text extraction
+type ExtractProcessRequest struct {
+	ExtractRequestId string                 `json:"extract_request_id,omitempty"`
 	Text             string                 `json:"text" binding:"required"` // The extracted text to process
-	FileName         string                 `json:"file_name,omitempty"`
-	FileURL          string                 `json:"file_url,omitempty"`
-	ProcessingType   string                 `json:"processing_type,omitempty"`
+	ResumeURL        string                 `json:"resume_url,omitempty"`
 	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 	FileNumber       int                    `json:"file_number,omitempty"`
 	TotalFiles       int                    `json:"total_files,omitempty"`
 	ExtractionSource string                 `json:"extraction_source,omitempty"` // Source of extraction (resume, linkedin, etc.)
+	ProcessingType   string                 `json:"processing_type,omitempty"`
 }
 
 // CandidateExtractionResult represents the result of candidate extraction and storage

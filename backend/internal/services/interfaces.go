@@ -45,8 +45,10 @@ type SkillService interface {
 	GetSkillsByIDs(ids []int) ([]models.Skill, error)
 	GetSkillsWithEmployeeCount() ([]models.SkillWithCount, error)
 	CreateSkill(skill *models.Skill) (*models.Skill, error)
+	CreateSkillWithCategories(req *models.CreateSkillRequest) (*models.Skill, error)
 	CreateSkillsBatch(skills []models.Skill) ([]models.Skill, error)
 	UpdateSkill(id int, skill *models.Skill) (*models.Skill, error)
+	UpdateSkillWithCategories(id int, req *models.CreateSkillRequest) (*models.Skill, error)
 	UpdateSkillsBatch(updates []models.SkillUpdate) error
 	DeleteSkill(id int) error
 	DeleteSkillsBatch(ids []int) error

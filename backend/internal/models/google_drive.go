@@ -56,7 +56,6 @@ type GoogleDriveFileProcess struct {
 	FileName        string    `json:"file_name"`
 	FileSize        int64     `json:"file_size"`
 	Status          string    `json:"status"` // "processed", "skipped", "failed"
-	UploadedFileID  *int      `json:"uploaded_file_id,omitempty"`
 	ExtractedSkills []Skill   `json:"extracted_skills,omitempty"`
 	Error           string    `json:"error,omitempty"`
 	ProcessedAt     time.Time `json:"processed_at"`

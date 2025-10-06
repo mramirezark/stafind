@@ -99,12 +99,11 @@ export function RegisterForm({ onSuccess, onToggleMode }: RegisterFormProps) {
         helperText="Choose a unique username for login"
       />
 
-      <TextField
-        fullWidth
-        label="Email"
-        type="email"
-        value={formData.email}
-        onChange={handleInputChange('email')}
+        <TextField
+          fullWidth
+          label="Email"
+          value={formData.email}
+          onChange={handleInputChange('email')}
         margin="normal"
         required
         autoComplete="email"

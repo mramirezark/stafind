@@ -27,7 +27,7 @@ func NewCandidateExtractionService(skillRepo repositories.SkillRepository, categ
 }
 
 // ProcessText processes text and returns structured results using pure NER
-func (s *CandidateExtractService) ProcessText(request *models.ExtractAIRequest) (*models.ExtractAIResponse, error) {
+func (s *CandidateExtractService) ProcessText(request *models.ExtractProcessRequest) (*models.ExtractAIResponse, error) {
 	startTime := time.Now()
 
 	// Process with pure NER
@@ -93,7 +93,7 @@ func (s *CandidateExtractService) extractCandidateWithNER(text string) (string, 
 		"contact_info":     contactInfo,
 		"skills":           nerResult.Skills.Categories,
 		"years_experience": nerResult.Skills.YearsOfExperience,
-		"seniority_level":  s.extractSeniorityLevelFromStrings(text, nerResult.Skills.YearsOfExperience),
+		"seniority_level":  s.extractAndNormalizeSeniorityLevelNER(text, nerResult.Skills.YearsOfExperience),
 		"current_position": s.extractCurrentPosition(text),
 		"education": map[string]interface{}{
 			"level":        nerResult.Skills.EducationLevel,
@@ -273,11 +273,29 @@ func (s *CandidateExtractService) extractContactInfoWithNER(text string) map[str
 }
 
 func (s *CandidateExtractService) findEmail(text string) string {
+	// Preprocess text to handle split emails (common in PDFs and formatted text)
+	// Replace line breaks that might split email addresses
+	processedText := strings.ReplaceAll(text, "\n", " ")
+	processedText = strings.ReplaceAll(processedText, "\r", " ")
+	processedText = strings.ReplaceAll(processedText, "\t", " ")
+	// Remove multiple spaces
+	processedText = regexp.MustCompile(`\s+`).ReplaceAllString(processedText, " ")
+
+	// Handle split email domains (e.g., "gmail.c om" -> "gmail.com")
+	// Look for patterns like "domain.c om" and fix them
+	domainFixRegex := regexp.MustCompile(`([a-zA-Z0-9.-]+)\.([a-zA-Z]{1,3})\s+([a-zA-Z]{2,})`)
+	processedText = domainFixRegex.ReplaceAllString(processedText, "$1.$2$3")
+
+	fmt.Printf("DEBUG: Processed text for email detection: %s\n", processedText)
+
 	// Simple email detection using regex for better accuracy
 	emailRegex := regexp.MustCompile(`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`)
-	matches := emailRegex.FindAllString(text, -1)
+	matches := emailRegex.FindAllString(processedText, -1)
+	fmt.Printf("DEBUG: Email regex matches: %v\n", matches)
 	if len(matches) > 0 {
-		return strings.Trim(matches[0], ",.;:()[]")
+		result := strings.Trim(matches[0], ",.;:()[]")
+		fmt.Printf("DEBUG: Found email: %s\n", result)
+		return result
 	}
 
 	// If no email found, generate a placeholder based on name
@@ -385,6 +403,98 @@ func (s *CandidateExtractService) extractNumericYears(yearStr string) int {
 	return 0
 }
 
+// extractAndNormalizeSeniorityLevelNER extracts and normalizes seniority level using NER data
+func (s *CandidateExtractService) extractAndNormalizeSeniorityLevelNER(text string, yearsExperience []string) string {
+	// First try to extract from text directly using improved logic
+	seniorityFromText := s.extractSeniorityFromTextNER(text)
+	if seniorityFromText != "" {
+		return seniorityFromText
+	}
+
+	// If not found in text, determine based on years of experience
+	if len(yearsExperience) > 0 {
+		maxYears := s.getMaxYearsFromStrings(yearsExperience)
+		return s.normalizeSeniorityFromYears(maxYears)
+	}
+
+	// Default fallback
+	return "Mid"
+}
+
+// extractSeniorityFromTextNER extracts seniority level from text using improved pattern matching
+func (s *CandidateExtractService) extractSeniorityFromTextNER(text string) string {
+	lines := strings.Split(text, "\n")
+
+	// Look for common patterns in resume text
+	patterns := []string{
+		"senior", "sr", "lead", "principal", "staff",
+		"mid", "middle", "intermediate",
+		"junior", "jr", "entry", "associate",
+		"intern", "trainee", "apprentice",
+		"manager", "director", "vp", "executive",
+		"architect", "expert",
+	}
+
+	for _, line := range lines {
+		line = strings.ToLower(strings.TrimSpace(line))
+		if line == "" {
+			continue
+		}
+
+		for _, pattern := range patterns {
+			if strings.Contains(line, pattern) {
+				// Found a potential seniority indicator
+				return s.normalizeSeniorityLevelNER(line)
+			}
+		}
+	}
+
+	return ""
+}
+
+// normalizeSeniorityLevelNER normalizes various seniority level formats to standard values
+func (s *CandidateExtractService) normalizeSeniorityLevelNER(level string) string {
+	level = strings.ToLower(strings.TrimSpace(level))
+
+	// Handle various seniority level formats
+	switch {
+	case strings.Contains(level, "senior") || strings.Contains(level, "sr"):
+		return "Senior"
+	case strings.Contains(level, "lead") || strings.Contains(level, "principal") || strings.Contains(level, "staff"):
+		return "Senior"
+	case strings.Contains(level, "mid") || strings.Contains(level, "middle") || strings.Contains(level, "intermediate"):
+		return "Mid"
+	case strings.Contains(level, "junior") || strings.Contains(level, "jr") || strings.Contains(level, "entry") || strings.Contains(level, "associate"):
+		return "Junior"
+	case strings.Contains(level, "intern") || strings.Contains(level, "trainee") || strings.Contains(level, "apprentice"):
+		return "Junior"
+	case strings.Contains(level, "manager") || strings.Contains(level, "director") || strings.Contains(level, "vp") || strings.Contains(level, "executive"):
+		return "Senior"
+	case strings.Contains(level, "architect") || strings.Contains(level, "expert"):
+		return "Senior"
+	case strings.Contains(level, "level") && (strings.Contains(level, "3") || strings.Contains(level, "iii")):
+		return "Senior"
+	case strings.Contains(level, "level") && (strings.Contains(level, "2") || strings.Contains(level, "ii")):
+		return "Mid"
+	case strings.Contains(level, "level") && (strings.Contains(level, "1") || strings.Contains(level, "i")):
+		return "Junior"
+	default:
+		return ""
+	}
+}
+
+// normalizeSeniorityFromYears normalizes seniority based on years of experience
+func (s *CandidateExtractService) normalizeSeniorityFromYears(years int) string {
+	if years >= 7 {
+		return "Senior"
+	} else if years >= 3 {
+		return "Mid"
+	} else if years > 0 {
+		return "Junior"
+	}
+	return "Mid" // Default fallback
+}
+
 // extractSeniorityLevelFromStrings determines seniority level from years strings
 func (s *CandidateExtractService) extractSeniorityLevelFromStrings(text string, yearsExperience []string) string {
 	if len(yearsExperience) == 0 {
@@ -404,38 +514,20 @@ func (s *CandidateExtractService) extractSeniorityLevelFromStrings(text string, 
 }
 
 func (s *CandidateExtractService) extractSeniorityLevel(text string, yearsExperience *int) string {
-	// First try to extract from text directly
-	lines := strings.Split(text, "\n")
-	for _, line := range lines {
-		lower := strings.ToLower(line)
-		if strings.Contains(lower, "senior") {
-			return "Senior"
-		}
-		if strings.Contains(lower, "lead") || strings.Contains(lower, "principal") {
-			return "Lead"
-		}
-		if strings.Contains(lower, "junior") || strings.Contains(lower, "entry") {
-			return "Junior"
-		}
-		if strings.Contains(lower, "manager") || strings.Contains(lower, "director") {
-			return "Manager"
-		}
+	// First try to extract from text directly using improved logic
+	seniorityFromText := s.extractSeniorityFromTextNER(text)
+	if seniorityFromText != "" {
+		return seniorityFromText
 	}
 
 	// If not found in text, determine based on years of experience
 	if yearsExperience != nil {
 		years := *yearsExperience
-		if years >= 7 {
-			return "Senior"
-		} else if years >= 3 {
-			return "Mid-Level"
-		} else if years > 0 {
-			return "Junior"
-		}
+		return s.normalizeSeniorityFromYears(years)
 	}
 
 	// Default fallback
-	return "Mid-Level"
+	return "Mid"
 }
 
 // extractCurrentPosition extracts the job title/role from text (e.g., "Senior Software Engineer")

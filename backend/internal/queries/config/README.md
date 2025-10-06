@@ -9,7 +9,6 @@ This directory contains the split query configuration files for better organizat
 - `api_keys.yaml` - API key management queries
 - `ai_agents.yaml` - AI agent processing queries
 - `users.yaml` - User and role management queries
-- `uploaded_files.yaml` - File upload and management queries
 - `matches.yaml` - Employee matching queries
 
 ## Benefits of Split Configuration
@@ -45,5 +44,4 @@ Each query definition includes:
 - `api_keys`: API key management
 - `ai_agents`: AI agent processing
 - `users`: User and role management
-- `uploaded_files`: File upload and management
 - `matches`: Employee matching

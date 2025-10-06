@@ -10,9 +10,9 @@ type EmployeeRepository interface {
 	GetByID(id int) (*models.Employee, error)
 	GetByEmail(email string) (*models.Employee, error)
 	Create(req *models.CreateEmployeeRequest) (*models.Employee, error)
-	CreateWithExtraction(req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus string) (*models.Employee, error)
+	CreateWithExtraction(req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus, resumeURL string) (*models.Employee, error)
 	Update(id int, req *models.CreateEmployeeRequest) (*models.Employee, error)
-	UpdateWithExtraction(id int, req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus string) (*models.Employee, error)
+	UpdateWithExtraction(id int, req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus, resumeURL string) (*models.Employee, error)
 	Delete(id int) error
 	GetSkills(employeeID int) ([]models.Skill, error)
 	AddSkill(employeeID int, skillReq *models.EmployeeSkillReq) error
@@ -56,6 +56,7 @@ type SkillRepository interface {
 	AddSkillToCategory(skillID, categoryID int) error
 	RemoveSkillFromCategory(skillID, categoryID int) error
 	GetSkillCategories(skillID int) ([]models.Category, error)
+	AssociateCategories(skillID int, categoryIDs []int) error
 }
 
 // MatchRepository defines the interface for match data operations

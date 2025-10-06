@@ -13,9 +13,10 @@ func SetupAllRoutes(
 	h *handlers.Handlers,
 	authHandlers *handlers.AuthHandlers,
 	dashboardHandlers *handlers.DashboardHandlers,
-	fileUploadHandlers *handlers.FileUploadHandlers,
 	apiKeyHandlers *handlers.APIKeyHandlers,
 	extractionHandlers *handlers.ExtractHandlers,
+	matchingHandlers *handlers.MatchingHandler,
+	cvExtractHandlers *handlers.CVExtractHandlers,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -39,8 +40,16 @@ func SetupAllRoutes(
 	SetupPublicRoutes(app, h, apiKeyHandlers)
 	SetupAuthRoutes(app, authHandlers)
 	SetupExtractRoutes(app, extractionHandlers)
-	SetupAPIRoutes(app, h, authHandlers, dashboardHandlers, fileUploadHandlers, apiKeyHandlers)
+	SetupMatchingRoutes(app, matchingHandlers)
+	SetupCVExtractRoutes(app, cvExtractHandlers)
+	SetupAPIRoutes(app, h, authHandlers, dashboardHandlers, apiKeyHandlers)
 	SetupAdminRoutes(app, authHandlers, apiKeyHandlers)
 
 	return app
+}
+
+// SetupCVExtractRoutes configures CV extract tracking routes
+func SetupCVExtractRoutes(app *fiber.App, cvExtractHandlers *handlers.CVExtractHandlers) {
+	// Register CV extract routes
+	cvExtractHandlers.RegisterCVExtractRoutes(app)
 }

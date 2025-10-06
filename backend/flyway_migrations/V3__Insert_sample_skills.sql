@@ -50,6 +50,23 @@ INSERT INTO skills (name) VALUES
 ('Shell'),
 ('PowerShell'),
 ('Bash'),
+('SQL'),
+('VB.NET'),
+('Visual Basic'),
+('VB'),
+('Perl'),
+('COBOL'),
+('Fortran'),
+('Pascal'),
+('Delphi'),
+('Objective-C'),
+('Groovy'),
+('Crystal'),
+('Nim'),
+('Zig'),
+('V'),
+('Odin'),
+('D'),
 
 -- Frontend Frameworks
 ('React'),
@@ -354,7 +371,9 @@ SELECT s.id, 1 FROM skills s WHERE s.name IN (
     'JavaScript', 'Python', 'Go', 'TypeScript', 'Java', 'C++', 'C#', 'Rust', 
     'Swift', 'Kotlin', 'PHP', 'Ruby', 'Scala', 'R', 'MATLAB', 'Dart', 'Lua', 
     'Haskell', 'Clojure', 'Erlang', 'Elixir', 'F#', 'Assembly', 'C', 'Shell', 
-    'PowerShell', 'Bash'
+    'PowerShell', 'Bash', 'SQL', 'VB.NET', 'Visual Basic', 'VB', 'Perl', 
+    'COBOL', 'Fortran', 'Pascal', 'Delphi', 'Objective-C', 'Groovy', 'Crystal', 
+    'Nim', 'Zig', 'V', 'Odin', 'D'
 );
 
 -- Frontend Frameworks (Category ID: 2)

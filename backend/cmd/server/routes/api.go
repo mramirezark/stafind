@@ -13,7 +13,6 @@ func SetupAPIRoutes(
 	h *handlers.Handlers,
 	authHandlers *handlers.AuthHandlers,
 	dashboardHandlers *handlers.DashboardHandlers,
-	fileUploadHandlers *handlers.FileUploadHandlers,
 	apiKeyHandlers *handlers.APIKeyHandlers,
 ) {
 	// Protected API routes group
@@ -73,9 +72,5 @@ func SetupAPIRoutes(
 		api.Get("/dashboard/top-suggested-employees", dashboardHandlers.GetTopSuggestedEmployees)
 		api.Get("/dashboard/top-employees", dashboardHandlers.GetTopSuggestedEmployees) // Alias for top-suggested-employees
 
-		// File upload routes
-		api.Post("/upload", fileUploadHandlers.UploadFile)
-		api.Get("/files/:id", fileUploadHandlers.GetFile)
-		api.Delete("/files/:id", fileUploadHandlers.DeleteFile)
 	}
 }

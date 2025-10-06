@@ -11,7 +11,6 @@ stafind/
 │   │   ├── resumes/          # Resume files
 │   │   └── temp/             # Temporary files
 │   └── internal/handlers/
-│       └── file_upload_handlers.go
 ├── frontend/
 │   └── lib/
 │       └── storage.ts        # Storage configuration

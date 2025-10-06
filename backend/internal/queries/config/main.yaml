@@ -34,10 +34,6 @@ categories:
     description: "Role-related queries"
     color: "#e67e22"
     
-  uploaded_files:
-    description: "Uploaded file-related queries"
-    color: "#34495e"
-    
   matches:
     description: "Match-related queries"
     color: "#f39c12"
@@ -52,7 +48,5 @@ domains:
     description: "AI agent processing queries"
   - file: "users.yaml"
     description: "User and role management queries"
-  - file: "uploaded_files.yaml"
-    description: "File upload and management queries"
   - file: "matches.yaml"
     description: "Employee matching queries"

@@ -195,6 +195,7 @@ const SkillManagement: React.FC = () => {
           onEdit={handleEditSkill}
           onDelete={handleDeleteSkill}
           onRefresh={handleRefresh}
+          onCreate={handleCreateSkill}
           loading={loading}
         />
       </TabPanel>
@@ -215,6 +216,7 @@ const SkillManagement: React.FC = () => {
         />
       </TabPanel>
 
+
       {/* Floating Action Button for creating skills */}
       {activeTab === 0 && (
         <Tooltip title="Add New Skill">
@@ -225,6 +227,11 @@ const SkillManagement: React.FC = () => {
               position: 'fixed',
               bottom: 16,
               right: 16,
+              zIndex: 1000,
+              boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+              '&:hover': {
+                boxShadow: '0 6px 12px rgba(0,0,0,0.4)',
+              }
             }}
             onClick={handleCreateSkill}
           >

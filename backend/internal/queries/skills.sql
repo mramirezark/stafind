@@ -147,6 +147,11 @@ ON CONFLICT (skill_id, category_id) DO NOTHING;
 DELETE FROM skills_categories 
 WHERE skill_id = $1 AND category_id = $2;
 
+-- Remove all skill categories
+-- Query name: remove_all_skill_categories
+DELETE FROM skills_categories 
+WHERE skill_id = $1;
+
 -- Get skill categories
 -- Query name: get_skill_categories
 SELECT c.id, c.name FROM categories c

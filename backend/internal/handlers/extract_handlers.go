@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"stafind-backend/internal/logger"
 	"stafind-backend/internal/models"
 	"stafind-backend/internal/services"
 	"time"
@@ -16,14 +15,16 @@ type ExtractHandlers struct {
 	extractionService       *services.CandidateExtractService
 	aiAgentService          services.AIAgentService
 	candidateStorageService *services.CandidateStorageService
+	cvExtractService        services.CVExtractService
 }
 
 // NewExtractHandlers creates new extraction handlers
-func NewExtractHandlers(extractionService *services.CandidateExtractService, aiAgentService services.AIAgentService, candidateStorageService *services.CandidateStorageService) *ExtractHandlers {
+func NewExtractHandlers(extractionService *services.CandidateExtractService, aiAgentService services.AIAgentService, candidateStorageService *services.CandidateStorageService, cvExtractService services.CVExtractService) *ExtractHandlers {
 	return &ExtractHandlers{
 		extractionService:       extractionService,
 		aiAgentService:          aiAgentService,
 		candidateStorageService: candidateStorageService,
+		cvExtractService:        cvExtractService,
 	}
 }
 
@@ -50,8 +51,17 @@ func (h *ExtractHandlers) ProcessExtractedText(c *fiber.Ctx) error {
 		})
 	}
 
+	// Convert ExtractAIRequest to ExtractProcessRequest
+	processRequest := models.ExtractProcessRequest{
+		Text:             request.Text,
+		ResumeURL:        request.FileURL, // Use FileURL as ResumeURL
+		Metadata:         request.Metadata,
+		ExtractionSource: "resume", // Default extraction source
+		ProcessingType:   request.ProcessingType,
+	}
+
 	// Process the request using pure NER
-	result, err := h.extractionService.ProcessText(&request)
+	result, err := h.extractionService.ProcessText(&processRequest)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to process text with NER extraction",
@@ -79,7 +89,16 @@ func (h *ExtractHandlers) ExtractCandidateInfo(c *fiber.Ctx) error {
 		"format":   "resume",
 	}
 
-	result, err := h.extractionService.ProcessText(&request)
+	// Convert ExtractAIRequest to ExtractProcessRequest
+	processRequest := models.ExtractProcessRequest{
+		Text:             request.Text,
+		ResumeURL:        request.FileURL, // Use FileURL as ResumeURL
+		Metadata:         request.Metadata,
+		ExtractionSource: "resume", // Default extraction source
+		ProcessingType:   request.ProcessingType,
+	}
+
+	result, err := h.extractionService.ProcessText(&processRequest)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to extract candidate information",
@@ -127,7 +146,16 @@ func (h *ExtractHandlers) AnalyzeSearchRequest(c *fiber.Ctx) error {
 		"format":   "search_request",
 	}
 
-	result, err := h.extractionService.ProcessText(&request)
+	// Convert ExtractAIRequest to ExtractProcessRequest
+	processRequest := models.ExtractProcessRequest{
+		Text:             request.Text,
+		ResumeURL:        request.FileURL, // Use FileURL as ResumeURL
+		Metadata:         request.Metadata,
+		ExtractionSource: "resume", // Default extraction source
+		ProcessingType:   request.ProcessingType,
+	}
+
+	result, err := h.extractionService.ProcessText(&processRequest)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to analyze search request",
@@ -193,7 +221,16 @@ func (h *ExtractHandlers) MatchCandidateWithRequest(c *fiber.Ctx) error {
 		},
 	}
 
-	result, err := h.extractionService.ProcessText(&extractionRequest)
+	// Convert ExtractAIRequest to ExtractProcessRequest
+	processRequest := models.ExtractProcessRequest{
+		Text:             extractionRequest.Text,
+		ResumeURL:        extractionRequest.FileURL, // Use FileURL as ResumeURL
+		Metadata:         extractionRequest.Metadata,
+		ExtractionSource: "resume", // Default extraction source
+		ProcessingType:   extractionRequest.ProcessingType,
+	}
+
+	result, err := h.extractionService.ProcessText(&processRequest)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to match candidate with request",
@@ -244,20 +281,13 @@ func (h *ExtractHandlers) HealthCheck(c *fiber.Ctx) error {
 	})
 }
 
-// ConsolidatedExtract handles both AI agent creation/retrieval and text extraction in one endpoint
-func (h *ExtractHandlers) ConsolidatedExtract(c *fiber.Ctx) error {
-	var request models.ConsolidatedExtractRequest
+// ExtractProcess handles both AI agent creation/retrieval and text extraction in one endpoint
+func (h *ExtractHandlers) ExtractProcess(c *fiber.Ctx) error {
+	var request models.ExtractProcessRequest
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":   "Invalid request body",
 			"details": err.Error(),
-		})
-	}
-
-	// Validate required fields
-	if request.MessageText == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "message_text field is required",
 		})
 	}
 
@@ -267,113 +297,68 @@ func (h *ExtractHandlers) ConsolidatedExtract(c *fiber.Ctx) error {
 		})
 	}
 
-	// Step 1: Handle AI Agent Request (create if not exists, get if exists)
-	var aiAgentRequest *models.AIAgentRequest
-	var err error
+	// CV Extract Tracking: Create or update extract record
+	var cvExtract *models.CVExtract
+	if request.ExtractRequestId != "" {
+		// Create metadata for CV extract
+		metadata := map[string]interface{}{
+			"extraction_source": request.ExtractionSource,
+			"processing_type":   request.ProcessingType,
+			"resume_url":        request.ResumeURL,
+			"file_number":       request.FileNumber,
+			"total_files":       request.TotalFiles,
+		}
+		metadataJSON, _ := json.Marshal(metadata)
+		metadataStr := string(metadataJSON)
 
-	// Check if we have a Teams message ID to look up existing request
-	if request.TeamsMessageID != "" {
-		// Try to get existing AI agent request by Teams message ID
-		aiAgentRequest, err = h.aiAgentService.GetAIAgentRequestByTeamsMessageID(request.TeamsMessageID)
+		// Create or update CV extract record
+		extract, err := h.cvExtractService.CreateOrUpdateExtract(
+			request.ExtractRequestId,
+			models.CVExtractStatusProcessing,
+			request.TotalFiles,
+			request.FileNumber,
+			&metadataStr,
+		)
 		if err != nil {
-			// If not found, create a new one
-			createRequest := models.CreateAIAgentRequest{
-				TeamsMessageID: request.TeamsMessageID,
-				ChannelID:      request.ChannelID,
-				UserID:         request.UserID,
-				UserName:       request.UserName,
-				MessageText:    request.MessageText,
-				AttachmentURL:  request.AttachmentURL,
-			}
-
-			// Generate defaults for public endpoint if not provided
-			if createRequest.ChannelID == "" {
-				createRequest.ChannelID = "consolidated-channel"
-			}
-			if createRequest.UserID == "" {
-				createRequest.UserID = "consolidated-user"
-			}
-			if createRequest.UserName == "" {
-				createRequest.UserName = "Consolidated User"
-			}
-
-			aiAgentRequest, err = h.aiAgentService.CreateAIAgentRequest(&createRequest)
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"error":   "Failed to create AI agent request",
-					"details": err.Error(),
-				})
-			}
-		}
-	} else {
-		// Create new AI agent request with generated Teams message ID
-		createRequest := models.CreateAIAgentRequest{
-			TeamsMessageID: fmt.Sprintf("consolidated-%d", time.Now().UnixNano()),
-			ChannelID:      request.ChannelID,
-			UserID:         request.UserID,
-			UserName:       request.UserName,
-			MessageText:    request.MessageText,
-			AttachmentURL:  request.AttachmentURL,
-		}
-
-		// Generate defaults for public endpoint if not provided
-		if createRequest.ChannelID == "" {
-			createRequest.ChannelID = "consolidated-channel"
-		}
-		if createRequest.UserID == "" {
-			createRequest.UserID = "consolidated-user"
-		}
-		if createRequest.UserName == "" {
-			createRequest.UserName = "Consolidated User"
-		}
-
-		aiAgentRequest, err = h.aiAgentService.CreateAIAgentRequest(&createRequest)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error":   "Failed to create AI agent request",
-				"details": err.Error(),
-			})
+			// Log error but don't fail the extraction process
+			fmt.Printf("Warning: Failed to create/update CV extract record: %v\n", err)
+		} else {
+			cvExtract = extract
 		}
 	}
 
-	// Step 2: Process text extraction using NER
-	extractRequest := models.ExtractAIRequest{
-		TeamsMessageID: aiAgentRequest.TeamsMessageID,
-		ChannelID:      aiAgentRequest.ChannelID,
-		UserID:         aiAgentRequest.UserID,
-		UserName:       aiAgentRequest.UserName,
-		MessageText:    request.MessageText,
-		Text:           request.Text,
-		FileName:       request.FileName,
-		FileURL:        request.FileURL,
-		ProcessingType: request.ProcessingType,
-		Metadata:       request.Metadata,
-	}
-
-	// Set default processing type if not provided
-	if extractRequest.ProcessingType == "" {
-		extractRequest.ProcessingType = "candidate_extraction"
-	}
-
-	// Set default metadata if not provided
-	if extractRequest.Metadata == nil {
-		extractRequest.Metadata = map[string]interface{}{
-			"language": "auto-detect",
-			"format":   "consolidated",
-		}
-	}
-
-	result, err := h.extractionService.ProcessText(&extractRequest)
+	result, err := h.extractionService.ProcessText(&request)
 	if err != nil {
+		// CV Extract Tracking: Mark as failed if extraction fails
+		if cvExtract != nil && request.ExtractRequestId != "" {
+			_, markErr := h.cvExtractService.MarkExtractFailed(
+				request.ExtractRequestId,
+				"Failed to process text with NER extraction: "+err.Error(),
+			)
+			if markErr != nil {
+				fmt.Printf("Warning: Failed to mark CV extract as failed: %v\n", markErr)
+			}
+		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to process text with NER extraction",
 			"details": err.Error(),
 		})
 	}
 
-	// Step 3: Parse extracted data and store/update employee
 	var extractedData map[string]interface{}
 	if err := json.Unmarshal([]byte(result.ProcessedContent), &extractedData); err != nil {
+		// CV Extract Tracking: Mark as failed if parsing fails
+		if cvExtract != nil && request.ExtractRequestId != "" {
+			_, markErr := h.cvExtractService.MarkExtractFailed(
+				request.ExtractRequestId,
+				"Failed to parse extracted data: "+err.Error(),
+			)
+			if markErr != nil {
+				fmt.Printf("Warning: Failed to mark CV extract as failed: %v\n", markErr)
+			}
+		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to parse extracted data",
 			"details": err.Error(),
@@ -390,91 +375,61 @@ func (h *ExtractHandlers) ConsolidatedExtract(c *fiber.Ctx) error {
 		request.Text,
 		extractedData,
 		extractionSource,
+		request.ResumeURL,
 	)
 	if err != nil {
+		// CV Extract Tracking: Mark as failed if candidate extraction fails
+		if cvExtract != nil && request.ExtractRequestId != "" {
+			_, markErr := h.cvExtractService.MarkExtractFailed(
+				request.ExtractRequestId,
+				"Failed to process candidate extraction: "+err.Error(),
+			)
+			if markErr != nil {
+				fmt.Printf("Warning: Failed to mark CV extract as failed: %v\n", markErr)
+			}
+		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to process candidate extraction",
 			"details": err.Error(),
 		})
 	}
 
-	// Step 4: Update AI agent request with extracted text
-	aiAgentRequest.ExtractedText = &result.ProcessedContent
-	if request.TotalFiles == request.FileNumber {
-		aiAgentRequest.Status = "completed"
-	} else {
-		aiAgentRequest.Status = "processing"
-	}
-	now := time.Now()
-	aiAgentRequest.ProcessedAt = &now
+	//h.aiAgentService.UpdateAIAgentStatus(aiAgentRequest.ID, aiAgentRequest.Status)
 
-	// Step 5: If all files are processed, trigger matching process using AI agent service
-	var aiMatches []models.AIAgentMatch
-	var matchSummary string
-	var savedMatches []models.Match
-	//Temp fix for testing
-	if request.TotalFiles > 0 {
-		//if request.TotalFiles > 0 && request.TotalFiles == request.FileNumber {
+	// CV Extract Tracking: Update completion status based on results
+	if cvExtract != nil && request.ExtractRequestId != "" {
+		// Calculate total processing time
+		totalTimeMs := int64(result.ProcessingTime + candidateResult.ProcessingTime)
 
-		// All files processed, extract skills from the search request message text
-		skillExtractResult, err := h.aiAgentService.ExtractSkillsFromText(request.MessageText)
+		// Update file progress
+		_, err := h.cvExtractService.UpdateFileProgress(
+			request.ExtractRequestId,
+			request.FileNumber,
+			1, // files processed (current file)
+			0, // files failed
+		)
 		if err != nil {
-			aiAgentRequest.Status = "failed"
-			fmt.Printf("Warning: Failed to extract skills from search request: %v\n", err)
-		} else {
-			// Find matching employees using AI agent service
-			matches, err := h.aiAgentService.FindMatchingEmployees(skillExtractResult.Skills)
-			if err != nil {
-				aiAgentRequest.Status = "failed"
-				fmt.Printf("Warning: Failed to find matching employees: %v\n", err)
-			} else {
-				// Save matches to database
-				for _, match := range matches {
-					savedMatch, err := h.aiAgentService.SaveMatch(&match)
-					if err != nil {
-						fmt.Printf("Warning: Failed to save match for employee %d: %v\n", match.EmployeeID, err)
-					} else {
-						savedMatches = append(savedMatches, *savedMatch)
-					}
-				}
+			fmt.Printf("Warning: Failed to update CV extract progress: %v\n", err)
+		}
 
-				// Generate match explanations using AI agent service
-				aiMatches = h.aiAgentService.GenerateMatchExplanations(matches, skillExtractResult.Skills)
-				matchSummary = h.aiAgentService.GenerateMatchSummary(aiMatches, skillExtractResult.Skills)
-
-				// Save AI agent response to database
-				response := &models.AIAgentResponse{
-					RequestID:      aiAgentRequest.ID,
-					Matches:        aiMatches,
-					Summary:        matchSummary,
-					ProcessingTime: time.Since(aiAgentRequest.CreatedAt).Milliseconds(),
-					Status:         "completed",
-				}
-
-				if err := h.aiAgentService.SaveResponse(response); err != nil {
-					fmt.Printf("Warning: Failed to save AI agent response: %v\n", err)
-				}
-
-				aiAgentRequest.Status = "completed"
-			}
+		// Mark as successful completion
+		_, err = h.cvExtractService.MarkExtractSuccess(
+			request.ExtractRequestId,
+			totalTimeMs,
+		)
+		if err != nil {
+			// Log error but don't fail the response
+			fmt.Printf("Warning: Failed to mark CV extract as successful: %v\n", err)
 		}
 	}
-	h.aiAgentService.UpdateAIAgentStatus(aiAgentRequest.ID, aiAgentRequest.Status)
 
-	// Return consolidated response
+	// Return simplified processing response
 	response := fiber.Map{
-		"success": true,
-		"ai_agent_request": fiber.Map{
-			"id":               aiAgentRequest.ID,
-			"teams_message_id": aiAgentRequest.TeamsMessageID,
-			"channel_id":       aiAgentRequest.ChannelID,
-			"user_id":          aiAgentRequest.UserID,
-			"user_name":        aiAgentRequest.UserName,
-			"message_text":     aiAgentRequest.MessageText,
-			"status":           aiAgentRequest.Status,
-			"created_at":       aiAgentRequest.CreatedAt,
-			"processed_at":     aiAgentRequest.ProcessedAt,
-		},
+		"success":     true,
+		"request_id":  request.ExtractRequestId,
+		"file_number": request.FileNumber,
+		"total_files": request.TotalFiles,
 		"extraction_result": fiber.Map{
 			"processed_content": result.ProcessedContent,
 			"processing_time":   result.ProcessingTime,
@@ -492,21 +447,8 @@ func (h *ExtractHandlers) ConsolidatedExtract(c *fiber.Ctx) error {
 			"status":           candidateResult.Status,
 			"message":          candidateResult.Message,
 		},
-		"message": "Consolidated extraction completed successfully",
+		"message": "File processing completed successfully",
 	}
 
-	// Add AI agent matching result if available
-	if len(aiMatches) > 0 {
-		response["ai_matching_result"] = fiber.Map{
-			"matches":        aiMatches,
-			"summary":        matchSummary,
-			"total_matches":  len(aiMatches),
-			"saved_matches":  len(savedMatches),
-			"response_saved": true,
-		}
-		response["message"] = "All files processed and AI matching completed successfully"
-	}
-
-	logger.Info("Status, ", aiAgentRequest.Status, "response", response)
 	return c.Status(fiber.StatusOK).JSON(response)
 }

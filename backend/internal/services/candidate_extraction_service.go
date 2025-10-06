@@ -29,6 +29,7 @@ func (s *CandidateStorageService) ProcessCandidateExtraction(
 	originalText string,
 	extractedData map[string]interface{},
 	extractionSource string,
+	resumeURL string,
 ) (*models.CandidateExtractionResult, error) {
 	startTime := time.Now()
 
@@ -53,7 +54,7 @@ func (s *CandidateStorageService) ProcessCandidateExtraction(
 		if err == sql.ErrNoRows {
 			fmt.Printf("DEBUG: Employee not found, creating new one\n")
 			// Employee doesn't exist, create new one
-			return s.createNewEmployee(originalText, extractedData, extractionSource, startTime)
+			return s.createNewEmployee(originalText, extractedData, extractionSource, startTime, resumeURL)
 		}
 		// Some other database error occurred
 		fmt.Printf("DEBUG: Database error: %v\n", err)
@@ -66,7 +67,7 @@ func (s *CandidateStorageService) ProcessCandidateExtraction(
 	fmt.Printf("DEBUG: Found existing employee: %s\n", existingEmployee.Name)
 
 	// Employee exists, check for changes
-	return s.updateExistingEmployee(existingEmployee, originalText, extractedData, extractionSource, startTime)
+	return s.updateExistingEmployee(existingEmployee, originalText, extractedData, extractionSource, startTime, resumeURL)
 }
 
 // createNewEmployee creates a new employee from extracted data
@@ -75,6 +76,7 @@ func (s *CandidateStorageService) createNewEmployee(
 	extractedData map[string]interface{},
 	extractionSource string,
 	startTime time.Time,
+	resumeURL string,
 ) (*models.CandidateExtractionResult, error) {
 	// Extract basic information
 	candidateName, _ := extractedData["candidate_name"].(string)
@@ -82,9 +84,10 @@ func (s *CandidateStorageService) createNewEmployee(
 	email, _ := contactInfo["email"].(string)
 	location, _ := contactInfo["location"].(string)
 
-	seniorityLevel, _ := extractedData["seniority_level"].(string)
-	currentPosition, _ := extractedData["current_position"].(string)
 	summary, _ := extractedData["summary"].(string)
+
+	// Extract and normalize seniority level using improved extraction
+	seniorityLevel := s.extractAndNormalizeSeniorityLevel(extractedData, originalText)
 
 	// Extract last project from work experience
 	lastProject := s.extractLastProject(originalText)
@@ -94,10 +97,11 @@ func (s *CandidateStorageService) createNewEmployee(
 		Name:           candidateName,
 		Email:          email,
 		Department:     s.mapSeniorityToDepartment(seniorityLevel),
-		Level:          currentPosition, // Job title/role (e.g., "Senior Software Engineer")
+		Level:          seniorityLevel, // Seniority level (e.g., "Senior", "Mid", "Junior")
 		Location:       location,
 		Bio:            summary,
 		CurrentProject: lastProject, // Last project they worked on
+		ResumeUrl:      resumeURL,   // Resume URL from the extraction request
 		Skills:         s.extractSkillsFromData(extractedData),
 	}
 
@@ -109,6 +113,7 @@ func (s *CandidateStorageService) createNewEmployee(
 		extractedData,
 		extractionSource,
 		"completed",
+		resumeURL,
 	)
 	if err != nil {
 		fmt.Printf("DEBUG: Failed to create employee with extraction data: %v\n", err)
@@ -140,6 +145,7 @@ func (s *CandidateStorageService) updateExistingEmployee(
 	extractedData map[string]interface{},
 	extractionSource string,
 	startTime time.Time,
+	resumeURL string,
 ) (*models.CandidateExtractionResult, error) {
 	changesDetected := false
 	changesSummary := []string{}
@@ -190,9 +196,10 @@ func (s *CandidateStorageService) updateExistingEmployee(
 	// Extract updated information
 	contactInfo, _ := extractedData["contact_info"].(map[string]interface{})
 	location, _ := contactInfo["location"].(string)
-	seniorityLevel, _ := extractedData["seniority_level"].(string)
 	summary, _ := extractedData["summary"].(string)
-	currentPosition, _ := extractedData["current_position"].(string)
+
+	// Extract and normalize seniority level using improved extraction
+	seniorityLevel := s.extractAndNormalizeSeniorityLevel(extractedData, originalText)
 
 	// Extract last project from work experience
 	lastProject := s.extractLastProject(originalText)
@@ -202,7 +209,7 @@ func (s *CandidateStorageService) updateExistingEmployee(
 		Name:       existingEmployee.Name,
 		Email:      existingEmployee.Email,
 		Department: s.mapSeniorityToDepartment(seniorityLevel),
-		Level:      currentPosition, // Job title/role (e.g., "Senior Software Engineer")
+		Level:      seniorityLevel, // Seniority level (e.g., "Senior", "Mid", "Junior")
 		Location:   location,
 		Bio:        summary,
 		CurrentProject: func() string {
@@ -215,7 +222,8 @@ func (s *CandidateStorageService) updateExistingEmployee(
 			}
 			return ""
 		}(), // Last project they worked on or existing project
-		Skills: s.extractSkillsFromData(extractedData),
+		ResumeUrl: resumeURL, // Resume URL from the extraction request
+		Skills:    s.extractSkillsFromData(extractedData),
 	}
 
 	updatedEmployee, err := s.employeeRepo.UpdateWithExtraction(
@@ -225,6 +233,7 @@ func (s *CandidateStorageService) updateExistingEmployee(
 		extractedData,
 		extractionSource,
 		"completed",
+		resumeURL,
 	)
 	if err != nil {
 		return &models.CandidateExtractionResult{
@@ -253,6 +262,110 @@ func (s *CandidateStorageService) updateExistingEmployee(
 	}, nil
 }
 
+// extractAndNormalizeSeniorityLevel extracts and normalizes seniority level from various formats
+func (s *CandidateStorageService) extractAndNormalizeSeniorityLevel(extractedData map[string]interface{}, originalText string) string {
+	// First try to get from extracted data
+	if seniorityLevel, ok := extractedData["seniority_level"].(string); ok && seniorityLevel != "" {
+		return s.normalizeSeniorityLevel(seniorityLevel)
+	}
+
+	// If not found in extracted data, try to extract from original text
+	return s.extractSeniorityFromText(originalText)
+}
+
+// normalizeSeniorityLevel normalizes various seniority level formats to standard values
+func (s *CandidateStorageService) normalizeSeniorityLevel(level string) string {
+	level = strings.ToLower(strings.TrimSpace(level))
+
+	// Handle various seniority level formats
+	switch {
+	case strings.Contains(level, "senior") || strings.Contains(level, "sr"):
+		return "Senior"
+	case strings.Contains(level, "lead") || strings.Contains(level, "principal") || strings.Contains(level, "staff"):
+		return "Senior"
+	case strings.Contains(level, "mid") || strings.Contains(level, "middle") || strings.Contains(level, "intermediate"):
+		return "Mid"
+	case strings.Contains(level, "junior") || strings.Contains(level, "jr") || strings.Contains(level, "entry") || strings.Contains(level, "associate"):
+		return "Junior"
+	case strings.Contains(level, "intern") || strings.Contains(level, "trainee") || strings.Contains(level, "apprentice"):
+		return "Junior"
+	case strings.Contains(level, "manager") || strings.Contains(level, "director") || strings.Contains(level, "vp") || strings.Contains(level, "executive"):
+		return "Senior"
+	case strings.Contains(level, "architect") || strings.Contains(level, "expert"):
+		return "Senior"
+	case strings.Contains(level, "level") && (strings.Contains(level, "3") || strings.Contains(level, "iii")):
+		return "Senior"
+	case strings.Contains(level, "level") && (strings.Contains(level, "2") || strings.Contains(level, "ii")):
+		return "Mid"
+	case strings.Contains(level, "level") && (strings.Contains(level, "1") || strings.Contains(level, "i")):
+		return "Junior"
+	case strings.Contains(level, "years") && strings.Contains(level, "5"):
+		return "Senior"
+	case strings.Contains(level, "years") && (strings.Contains(level, "3") || strings.Contains(level, "4")):
+		return "Mid"
+	case strings.Contains(level, "years") && (strings.Contains(level, "1") || strings.Contains(level, "2")):
+		return "Junior"
+	default:
+		// If we can't determine, try to infer from years of experience
+		return s.inferSeniorityFromExperience(level)
+	}
+}
+
+// extractSeniorityFromText extracts seniority level from original resume text
+func (s *CandidateStorageService) extractSeniorityFromText(text string) string {
+	lines := strings.Split(text, "\n")
+
+	// Look for common patterns in resume text
+	patterns := []string{
+		"senior", "sr", "lead", "principal", "staff",
+		"mid", "middle", "intermediate",
+		"junior", "jr", "entry", "associate",
+		"intern", "trainee", "apprentice",
+		"manager", "director", "vp", "executive",
+		"architect", "expert",
+	}
+
+	for _, line := range lines {
+		line = strings.ToLower(strings.TrimSpace(line))
+		if line == "" {
+			continue
+		}
+
+		for _, pattern := range patterns {
+			if strings.Contains(line, pattern) {
+				// Found a potential seniority indicator
+				return s.normalizeSeniorityLevel(line)
+			}
+		}
+	}
+
+	// Default fallback
+	return "Mid"
+}
+
+// inferSeniorityFromExperience tries to infer seniority from experience-related text
+func (s *CandidateStorageService) inferSeniorityFromExperience(text string) string {
+	text = strings.ToLower(text)
+
+	// Look for years of experience patterns
+	if strings.Contains(text, "years") {
+		// Extract number of years if possible
+		// This is a simple implementation - could be enhanced with regex
+		if strings.Contains(text, "5") || strings.Contains(text, "6") || strings.Contains(text, "7") ||
+			strings.Contains(text, "8") || strings.Contains(text, "9") || strings.Contains(text, "10") {
+			return "Senior"
+		}
+		if strings.Contains(text, "3") || strings.Contains(text, "4") {
+			return "Mid"
+		}
+		if strings.Contains(text, "1") || strings.Contains(text, "2") {
+			return "Junior"
+		}
+	}
+
+	return "Mid" // Default fallback
+}
+
 // mapSeniorityToDepartment maps seniority level to department
 func (s *CandidateStorageService) mapSeniorityToDepartment(seniorityLevel string) string {
 	level := strings.ToLower(seniorityLevel)
@@ -270,66 +383,71 @@ func (s *CandidateStorageService) mapSeniorityToDepartment(seniorityLevel string
 	}
 }
 
-// extractSkillsFromData extracts skills from extracted data
+// extractSkillsFromData extracts skills from extracted data (NER format)
 func (s *CandidateStorageService) extractSkillsFromData(extractedData map[string]interface{}) []models.EmployeeSkillReq {
 	var skills []models.EmployeeSkillReq
 
-	// Extract technical skills
-	if skillsData, ok := extractedData["skills"].(map[string]interface{}); ok {
-		// Technical skills
-		if technical, ok := skillsData["technical"].([]interface{}); ok {
-			for _, skill := range technical {
-				if skillName, ok := skill.(string); ok {
-					skills = append(skills, models.EmployeeSkillReq{
-						SkillName:        skillName,
-						ProficiencyLevel: 3, // Default proficiency level
-						YearsExperience:  1.0,
-					})
-				}
-			}
-		}
-
-		// Frameworks
-		if frameworks, ok := skillsData["frameworks"].([]interface{}); ok {
-			for _, skill := range frameworks {
-				if skillName, ok := skill.(string); ok {
-					skills = append(skills, models.EmployeeSkillReq{
-						SkillName:        skillName,
-						ProficiencyLevel: 3,
-						YearsExperience:  1.0,
-					})
-				}
-			}
-		}
-
-		// Tools
-		if tools, ok := skillsData["tools"].([]interface{}); ok {
-			for _, skill := range tools {
-				if skillName, ok := skill.(string); ok {
-					skills = append(skills, models.EmployeeSkillReq{
-						SkillName:        skillName,
-						ProficiencyLevel: 3,
-						YearsExperience:  1.0,
-					})
-				}
-			}
-		}
-
-		// Languages
-		if languages, ok := skillsData["languages"].([]interface{}); ok {
-			for _, skill := range languages {
-				if skillName, ok := skill.(string); ok {
-					skills = append(skills, models.EmployeeSkillReq{
-						SkillName:        skillName,
-						ProficiencyLevel: 3,
-						YearsExperience:  1.0,
-					})
+	// Extract skills from NER format - skills is directly the Categories map
+	if categories, ok := extractedData["skills"].(map[string]interface{}); ok {
+		// Handle the NER service format: map[string][]string
+		for categoryName, skillList := range categories {
+			if skillArray, ok := skillList.([]interface{}); ok {
+				for _, skill := range skillArray {
+					if skillName, ok := skill.(string); ok {
+						skills = append(skills, models.EmployeeSkillReq{
+							SkillName:        skillName,
+							ProficiencyLevel: s.getProficiencyLevelForCategory(categoryName),
+							YearsExperience:  s.getYearsExperienceForCategory(categoryName),
+						})
+					}
 				}
 			}
 		}
 	}
 
 	return skills
+}
+
+// getProficiencyLevelForCategory returns appropriate proficiency level based on skill category
+func (s *CandidateStorageService) getProficiencyLevelForCategory(categoryName string) int {
+	category := strings.ToLower(categoryName)
+
+	// Higher proficiency for core technical skills
+	switch {
+	case strings.Contains(category, "programming") || strings.Contains(category, "language"):
+		return 4
+	case strings.Contains(category, "framework") || strings.Contains(category, "library"):
+		return 3
+	case strings.Contains(category, "tool") || strings.Contains(category, "software"):
+		return 3
+	case strings.Contains(category, "database") || strings.Contains(category, "cloud"):
+		return 3
+	case strings.Contains(category, "methodology") || strings.Contains(category, "process"):
+		return 2
+	default:
+		return 3 // Default proficiency level
+	}
+}
+
+// getYearsExperienceForCategory returns appropriate years of experience based on skill category
+func (s *CandidateStorageService) getYearsExperienceForCategory(categoryName string) float64 {
+	category := strings.ToLower(categoryName)
+
+	// More experience typically needed for advanced categories
+	switch {
+	case strings.Contains(category, "programming") || strings.Contains(category, "language"):
+		return 2.0
+	case strings.Contains(category, "framework") || strings.Contains(category, "library"):
+		return 1.5
+	case strings.Contains(category, "tool") || strings.Contains(category, "software"):
+		return 1.0
+	case strings.Contains(category, "database") || strings.Contains(category, "cloud"):
+		return 1.5
+	case strings.Contains(category, "methodology") || strings.Contains(category, "process"):
+		return 1.0
+	default:
+		return 1.0 // Default years of experience
+	}
 }
 
 // extractLastProject extracts the last project from work experience text

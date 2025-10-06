@@ -28,6 +28,11 @@ import {
   Stack,
   Button,
   Collapse,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -41,6 +46,7 @@ import {
   ExpandLess as ExpandLessIcon,
   UnfoldMore as ExpandAllIcon,
   UnfoldLess as CollapseAllIcon,
+  Add as AddIcon,
 } from '@mui/icons-material'
 
 import { Skill, Category, SkillFilters } from '@/types'
@@ -51,6 +57,7 @@ interface SkillListProps {
   onEdit: (skill: Skill) => void
   onDelete: (id: number) => void
   onRefresh: () => void
+  onCreate: () => void
   loading?: boolean
 }
 
@@ -60,6 +67,7 @@ const SkillList: React.FC<SkillListProps> = ({
   onEdit,
   onDelete,
   onRefresh,
+  onCreate,
   loading = false,
 }) => {
   const [page, setPage] = useState(0)
@@ -220,7 +228,7 @@ const SkillList: React.FC<SkillListProps> = ({
 
   const handleDeleteClick = () => {
     setDeleteConfirm(true)
-    handleMenuClose()
+    setAnchorEl(null) // Close menu but keep selectedSkill
   }
 
   const handleDeleteConfirm = async () => {
@@ -228,8 +236,11 @@ const SkillList: React.FC<SkillListProps> = ({
       try {
         await onDelete(selectedSkill.id)
         setDeleteConfirm(false)
+        setSelectedSkill(null)
       } catch (error) {
-        console.error('Error deleting skill:', error)
+        console.error('SkillList: Error deleting skill:', error)
+        // Show error to user
+        alert(`Failed to delete skill: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
   }
@@ -346,6 +357,16 @@ const SkillList: React.FC<SkillListProps> = ({
 
           <Box sx={{ flexGrow: 1 }} />
 
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={onCreate}
+            sx={{ mr: 1 }}
+          >
+            Add Skill
+          </Button>
+
           <Tooltip title="Refresh">
             <IconButton onClick={onRefresh} disabled={loading}>
               <RefreshIcon />
@@ -362,8 +383,7 @@ const SkillList: React.FC<SkillListProps> = ({
               <TableRow>
                 <TableCell>Name</TableCell>
                 <TableCell>Categories</TableCell>
-                <TableCell align="right">Employee Count</TableCell>
-                <TableCell align="right">Created</TableCell>
+                <TableCell align="right">Employee Count</TableCell>                
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -458,14 +478,7 @@ const SkillList: React.FC<SkillListProps> = ({
                                       <Typography variant="body2">
                                         {skill.employee_count || 0}
                                       </Typography>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                      <Typography variant="caption" color="text.secondary">
-                                        {skill.created_at
-                                          ? new Date(skill.created_at).toLocaleDateString()
-                                          : '-'}
-                                      </Typography>
-                                    </TableCell>
+                                    </TableCell>                                    
                                     <TableCell align="center">
                                       <IconButton
                                         onClick={(e) => handleMenuOpen(e, skill)}
@@ -566,31 +579,42 @@ const SkillList: React.FC<SkillListProps> = ({
       </Menu>
 
       {/* Delete Confirmation Dialog */}
-      {deleteConfirm && selectedSkill && (
-        <Alert
-          severity="warning"
-          action={
-            <Stack direction="row" spacing={1}>
-              <Button
-                size="small"
-                onClick={() => setDeleteConfirm(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                onClick={handleDeleteConfirm}
-              >
-                Delete
-              </Button>
-            </Stack>
-          }
-          sx={{ mt: 2 }}
-        >
-          Are you sure you want to delete the skill "{selectedSkill.name}"? This action cannot be undone.
-        </Alert>
-      )}
+      <Dialog
+        open={deleteConfirm && !!selectedSkill}
+        onClose={() => {
+          setDeleteConfirm(false)
+          setSelectedSkill(null)
+        }}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Delete Skill
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete the skill "{selectedSkill?.name}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDeleteConfirm(false)
+              setSelectedSkill(null)
+            }}
+            color="primary"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

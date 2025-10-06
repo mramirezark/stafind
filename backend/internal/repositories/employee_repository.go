@@ -35,6 +35,7 @@ func (r *employeeRepository) GetAll() ([]models.Employee, error) {
 		var employeeID int
 		var employeeName, employeeEmail, employeeDepartment, employeeLevel, employeeLocation, employeeBio string
 		var currentProject sql.NullString
+		var resumeUrl sql.NullString
 		var createdAt, updatedAt time.Time
 		var skillID sql.NullInt64
 		var skillName sql.NullString
@@ -43,7 +44,7 @@ func (r *employeeRepository) GetAll() ([]models.Employee, error) {
 
 		err := rows.Scan(
 			&employeeID, &employeeName, &employeeEmail, &employeeDepartment,
-			&employeeLevel, &employeeLocation, &employeeBio, &currentProject,
+			&employeeLevel, &employeeLocation, &employeeBio, &currentProject, &resumeUrl,
 			&createdAt, &updatedAt, &skillID, &skillName, &proficiencyLevel, &yearsExperience,
 		)
 		if err != nil {
@@ -67,6 +68,9 @@ func (r *employeeRepository) GetAll() ([]models.Employee, error) {
 			}
 			if currentProject.Valid {
 				employee.CurrentProject = &currentProject.String
+			}
+			if resumeUrl.Valid {
+				employee.ResumeUrl = &resumeUrl.String
 			}
 			employeeMap[employeeID] = employee
 		}
@@ -94,7 +98,7 @@ func (r *employeeRepository) GetByID(id int) (*models.Employee, error) {
 	var employee models.Employee
 	err := r.db.QueryRow(query, id).Scan(
 		&employee.ID, &employee.Name, &employee.Email, &employee.Department,
-		&employee.Level, &employee.Location, &employee.Bio, &employee.CurrentProject,
+		&employee.Level, &employee.Location, &employee.Bio, &employee.CurrentProject, &employee.ResumeUrl,
 		&employee.CreatedAt, &employee.UpdatedAt,
 	)
 	if err != nil {
@@ -120,7 +124,7 @@ func (r *employeeRepository) GetByEmail(email string) (*models.Employee, error) 
 
 	err := r.db.QueryRow(query, email).Scan(
 		&employee.ID, &employee.Name, &employee.Email, &employee.Department,
-		&employee.Level, &employee.Location, &employee.Bio, &employee.CurrentProject,
+		&employee.Level, &employee.Location, &employee.Bio, &employee.CurrentProject, &employee.ResumeUrl,
 		&originalText, &extractedDataJSON, &extractionTimestamp, &extractionSource, &extractionStatus,
 		&employee.CreatedAt, &employee.UpdatedAt,
 	)
@@ -178,10 +182,16 @@ func (r *employeeRepository) Create(req *models.CreateEmployeeRequest) (*models.
 		currentProject = &req.CurrentProject
 	}
 
+	// Convert string to pointer string for resume_url
+	var resumeUrl *string
+	if req.ResumeUrl != "" {
+		resumeUrl = &req.ResumeUrl
+	}
+
 	fmt.Printf("DEBUG: Executing INSERT query with params: %s, %s, %s, %s, %s, %s, %v\n",
 		req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject)
 
-	err = tx.QueryRow(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject).
+	err = tx.QueryRow(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject, resumeUrl).
 		Scan(&employee.ID, &employee.CreatedAt, &employee.UpdatedAt)
 	if err != nil {
 		fmt.Printf("DEBUG: Failed to execute INSERT query: %v\n", err)
@@ -228,7 +238,7 @@ func (r *employeeRepository) Create(req *models.CreateEmployeeRequest) (*models.
 	return createdEmployee, nil
 }
 
-func (r *employeeRepository) CreateWithExtraction(req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus string) (*models.Employee, error) {
+func (r *employeeRepository) CreateWithExtraction(req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus, resumeURL string) (*models.Employee, error) {
 	fmt.Printf("DEBUG: Creating employee with extraction data for %s (%s)\n", req.Name, req.Email)
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -255,7 +265,7 @@ func (r *employeeRepository) CreateWithExtraction(req *models.CreateEmployeeRequ
 	fmt.Printf("DEBUG: Executing INSERT with extraction query with params: %s, %s, %s, %s, %s, %s, %v\n",
 		req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject)
 
-	err = tx.QueryRow(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject,
+	err = tx.QueryRow(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject, resumeURL,
 		originalText, string(extractedDataJSON), time.Now(), extractionSource, extractionStatus).
 		Scan(&employee.ID, &employee.CreatedAt, &employee.UpdatedAt)
 	if err != nil {
@@ -359,7 +369,7 @@ func (r *employeeRepository) Update(id int, req *models.CreateEmployeeRequest) (
 	return r.GetByID(id)
 }
 
-func (r *employeeRepository) UpdateWithExtraction(id int, req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus string) (*models.Employee, error) {
+func (r *employeeRepository) UpdateWithExtraction(id int, req *models.CreateEmployeeRequest, originalText string, extractedData map[string]interface{}, extractionSource, extractionStatus, resumeURL string) (*models.Employee, error) {
 	fmt.Printf("DEBUG: Updating employee %d with extraction data\n", id)
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -383,7 +393,7 @@ func (r *employeeRepository) UpdateWithExtraction(id int, req *models.CreateEmpl
 	}
 
 	fmt.Printf("DEBUG: Executing UPDATE with extraction query for employee ID: %d\n", id)
-	_, err = tx.Exec(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject,
+	_, err = tx.Exec(query, req.Name, req.Email, req.Department, req.Level, req.Location, req.Bio, currentProject, resumeURL,
 		originalText, string(extractedDataJSON), time.Now(), extractionSource, extractionStatus, id)
 	if err != nil {
 		fmt.Printf("DEBUG: Failed to execute UPDATE with extraction query: %v\n", err)
@@ -479,12 +489,13 @@ func (r *employeeRepository) RemoveSkills(employeeID int) error {
 func (r *employeeRepository) addEmployeeSkill(tx *sql.Tx, employeeID int, skillReq *models.EmployeeSkillReq) error {
 	// First, get or create the skill
 	var skillID int
+	var skillName string
 	query := r.MustGetQuery("get_skill_by_name")
-	err := tx.QueryRow(query, skillReq.SkillName).Scan(&skillID)
+	err := tx.QueryRow(query, skillReq.SkillName).Scan(&skillID, &skillName)
 	if err == sql.ErrNoRows {
 		// Create the skill
 		query = r.MustGetQuery("create_skill")
-		err = tx.QueryRow(query, skillReq.SkillName).Scan(&skillID)
+		err = tx.QueryRow(query, skillReq.SkillName).Scan(&skillID, &skillName)
 		if err != nil {
 			return err
 		}
