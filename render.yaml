@@ -34,13 +34,13 @@ services:
     region: oregon  # Same region as backend for lower latency
     plan: free      # Free tier
     rootDir: frontend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
+      - key: NODE_VERSION
+        value: 20.18.0  # Lock to Node 20 LTS (Render default is too new)
       - key: NEXT_PUBLIC_API_URL
         sync: false  # Set this manually to your backend URL after deployment
-      - key: NPM_CONFIG_PRODUCTION
-        value: false  # Install devDependencies (needed for TypeScript build)
     autoDeploy: true
 
 # After deployment:
