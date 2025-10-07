@@ -110,13 +110,89 @@ db-reset: ## Reset database (WARNING: This will delete all data)
 	docker compose up -d postgres
 	@echo "Database reset completed!"
 
-db-clean: ## Clean all database objects (keeps containers running)
+db-clean: ## Clean all database objects (local PostgreSQL only)
 	@echo "Cleaning all database objects..."
 	cd backend && docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -d stafind -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 	cd backend && docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -d stafind -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
 	@echo "Running migrations..."
 	cd backend && go run cmd/flyway-cli/main.go migrate
 	@echo "Database cleaned and migrated successfully!"
+
+db-clean-go: ## Clean database (PostgreSQL or Supabase - pure Go, no psql/Docker required) ⭐
+	@echo "Running database clean utility (pure Go)..."
+	cd backend && go run cmd/db-clean/main.go
+
+# Database provider switching
+db-use-postgres: ## Switch to local PostgreSQL
+	@echo "Switching to local PostgreSQL..."
+	@if [ -f backend/.env.local ]; then \
+		cp backend/.env.local backend/.env; \
+		echo "✅ Switched to local PostgreSQL (from .env.local)"; \
+	elif [ -f backend/config.env.local ]; then \
+		cp backend/config.env.local backend/.env; \
+		echo "✅ Switched to local PostgreSQL (from config.env.local - legacy)"; \
+	else \
+		echo "⚠️  .env.local not found. Creating from template..."; \
+		cp backend/config.env.example backend/.env; \
+		echo "DB_PROVIDER=postgres" >> backend/.env; \
+		echo "✅ Created .env with PostgreSQL settings"; \
+	fi
+	@echo "Don't forget to restart your backend!"
+
+db-use-supabase: ## Switch to Supabase
+	@echo "Switching to Supabase..."
+	@if [ -f backend/.env.supabase ]; then \
+		cp backend/.env.supabase backend/.env; \
+		echo "✅ Switched to Supabase (from .env.supabase)"; \
+	elif [ -f backend/config.env.supabase ]; then \
+		cp backend/config.env.supabase backend/.env; \
+		echo "✅ Switched to Supabase (from config.env.supabase - legacy)"; \
+	elif [ -f backend/supabase.env.example ]; then \
+		echo "⚠️  .env.supabase not found."; \
+		echo "Please copy backend/supabase.env.example to backend/.env.supabase"; \
+		echo "and update it with your Supabase credentials."; \
+		exit 1; \
+	else \
+		echo "❌ supabase.env.example not found!"; \
+		exit 1; \
+	fi
+	@echo "Don't forget to restart your backend!"
+
+db-test-connection: ## Test database connection
+	@echo "Testing database connection..."
+	@cd backend && go run -exec 'env' cmd/server/main.go 2>&1 | grep -i "connected to database" || echo "❌ Failed to connect"
+
+db-show-config: ## Show current database configuration
+	@echo "Current Database Configuration:"
+	@echo "==============================="
+	@if [ -f backend/.env ]; then \
+		echo "Source: backend/.env"; \
+		echo "Provider: $$(grep '^DB_PROVIDER=' backend/.env | cut -d'=' -f2 || echo 'postgres (default)')"; \
+		echo "Host: $$(grep '^DB_HOST=' backend/.env | cut -d'=' -f2 || echo 'not set')"; \
+		echo "Port: $$(grep '^DB_PORT=' backend/.env | cut -d'=' -f2 || echo 'not set')"; \
+		echo "Database: $$(grep '^DB_NAME=' backend/.env | cut -d'=' -f2 || echo 'not set')"; \
+		echo "SSL Mode: $$(grep '^DB_SSLMODE=' backend/.env | cut -d'=' -f2 || echo 'not set')"; \
+		if grep -q '^DATABASE_URL=' backend/.env; then \
+			echo "Using DATABASE_URL: Yes"; \
+		else \
+			echo "Using DATABASE_URL: No"; \
+		fi; \
+	elif [ -f backend/config.env ]; then \
+		echo "Source: backend/config.env (legacy)"; \
+		echo "Provider: $$(grep '^DB_PROVIDER=' backend/config.env | cut -d'=' -f2 || echo 'postgres (default)')"; \
+		echo "Host: $$(grep '^DB_HOST=' backend/config.env | cut -d'=' -f2 || echo 'not set')"; \
+		echo "Port: $$(grep '^DB_PORT=' backend/config.env | cut -d'=' -f2 || echo 'not set')"; \
+		echo "Database: $$(grep '^DB_NAME=' backend/config.env | cut -d'=' -f2 || echo 'not set')"; \
+		echo "SSL Mode: $$(grep '^DB_SSLMODE=' backend/config.env | cut -d'=' -f2 || echo 'not set')"; \
+		if grep -q '^DATABASE_URL=' backend/config.env; then \
+			echo "Using DATABASE_URL: Yes"; \
+		else \
+			echo "Using DATABASE_URL: No"; \
+		fi; \
+	else \
+		echo "❌ backend/.env not found!"; \
+		echo "Create one from the template: cp backend/config.env.example backend/.env"; \
+	fi
 
 # Health checks
 health: ## Check health of all services

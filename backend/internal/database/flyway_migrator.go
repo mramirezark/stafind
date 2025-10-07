@@ -21,30 +21,51 @@ type FlywayMigrator struct {
 
 // FlywayConfig holds configuration for Flyway migrations
 type FlywayConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Database string
-	SSLMode  string
-	Location string
+	Provider      string
+	Host          string
+	Port          string
+	User          string
+	Password      string
+	Database      string
+	SSLMode       string
+	ConnectionURL string
+	Location      string
 }
 
 // NewFlywayMigrator creates a new Flyway migrator
 func NewFlywayMigrator(config *FlywayConfig) (*FlywayMigrator, error) {
-	// Build connection string
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.User, config.Password, config.Database, config.SSLMode)
+	var dsn string
+
+	// Use full connection URL if provided (typically for Supabase)
+	if config.ConnectionURL != "" {
+		dsn = config.ConnectionURL
+		logger.Info("Using DATABASE_URL for Flyway migrations", "provider", config.Provider)
+	} else {
+		// Build connection string from individual components
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+			config.Host, config.Port, config.User, config.Password, config.Database, config.SSLMode)
+		logger.Info("Using individual parameters for Flyway migrations",
+			"provider", config.Provider,
+			"host", config.Host,
+			"port", config.Port,
+		)
+	}
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
+	// Configure connection pool for migrations (conservative settings)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(2)
+
 	// Test the connection
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
+
+	logger.Info("Flyway migrator connected to database successfully")
 
 	// Set default location if not provided
 	location := config.Location
@@ -281,13 +302,23 @@ type AppliedMigration struct {
 
 // NewFlywayConfigFromEnv creates a FlywayConfig from environment variables
 func NewFlywayConfigFromEnv() *FlywayConfig {
+	provider := getEnv(constants.EnvDBProvider, constants.DefaultDBProvider)
+
+	// Default SSL mode depends on provider
+	defaultSSLMode := constants.DefaultSSLMode
+	if provider == constants.DBProviderSupabase {
+		defaultSSLMode = constants.SupabaseSSLMode
+	}
+
 	return &FlywayConfig{
-		Host:     getEnv(constants.EnvDBHost, constants.DefaultDBHost),
-		Port:     getEnv(constants.EnvDBPort, constants.DefaultDBPort),
-		User:     getEnv(constants.EnvDBUser, constants.DefaultDBUser),
-		Password: getEnv(constants.EnvDBPassword, constants.DefaultDBPassword),
-		Database: getEnv(constants.EnvDBName, constants.DefaultDBName),
-		SSLMode:  getEnv(constants.EnvDBSSLMode, constants.DefaultSSLMode),
-		Location: getEnv(constants.EnvFlywayLocations, constants.DefaultFlywayLocations),
+		Provider:      provider,
+		Host:          getEnv(constants.EnvDBHost, constants.DefaultDBHost),
+		Port:          getEnv(constants.EnvDBPort, constants.DefaultDBPort),
+		User:          getEnv(constants.EnvDBUser, constants.DefaultDBUser),
+		Password:      getEnv(constants.EnvDBPassword, constants.DefaultDBPassword),
+		Database:      getEnv(constants.EnvDBName, constants.DefaultDBName),
+		SSLMode:       getEnv(constants.EnvDBSSLMode, defaultSSLMode),
+		ConnectionURL: getEnv(constants.EnvDBConnectionURL, ""),
+		Location:      getEnv(constants.EnvFlywayLocations, constants.DefaultFlywayLocations),
 	}
 }

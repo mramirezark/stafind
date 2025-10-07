@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"stafind-backend/internal/models"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type employeeRepository struct {
@@ -514,7 +516,8 @@ func (r *employeeRepository) GetEmployeesWithSkills(skillNames []string) ([]mode
 	query := r.MustGetQuery("get_employees_with_skills_optimized")
 	fmt.Printf("DEBUG: Getting employees with skills: %v\n", skillNames)
 
-	rows, err := r.db.Query(query, skillNames)
+	// Use pq.Array() to convert Go slice to PostgreSQL array
+	rows, err := r.db.Query(query, pq.Array(skillNames))
 	if err != nil {
 		fmt.Printf("DEBUG: GetEmployeesWithSkills query error: %v\n", err)
 		return nil, err

@@ -6,6 +6,9 @@ import (
 	"os"
 	"stafind-backend/internal/constants"
 	"stafind-backend/internal/logger"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -17,28 +20,117 @@ type DB struct {
 	*sql.DB
 }
 
+// DBConfig holds database configuration
+type DBConfig struct {
+	Provider        string
+	Host            string
+	Port            string
+	User            string
+	Password        string
+	DBName          string
+	SSLMode         string
+	ConnectionURL   string
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+	ConnMaxIdleTime time.Duration
+	SupabasePooler  string
+}
+
 // NewConnection creates a new database connection
 func NewConnection() (*DB, error) {
-	host := getEnv(constants.EnvDBHost, constants.DefaultDBHost)
-	port := getEnv(constants.EnvDBPort, constants.DefaultDBPort)
-	user := getEnv(constants.EnvDBUser, constants.DefaultDBUser)
-	password := getEnv(constants.EnvDBPassword, constants.DefaultDBPassword)
-	dbname := getEnv(constants.EnvDBName, constants.DefaultDBName)
+	config := loadDBConfig()
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		host, port, user, password, dbname, constants.DefaultSSLMode)
+	var dsn string
+
+	// Use full connection URL if provided (typically for Supabase)
+	if config.ConnectionURL != "" {
+		dsn = config.ConnectionURL
+		logger.Info("Using DATABASE_URL connection string", "provider", config.Provider)
+	} else {
+		// Build DSN from individual components
+		dsn = buildDSN(config)
+		logger.Info("Successfully connected to database",
+			"provider", config.Provider,
+			"host", config.Host,
+			"port", config.Port,
+			"database", config.DBName,
+			"sslmode", config.SSLMode,
+			"max_open_conns", config.MaxOpenConns,
+			"max_idle_conns", config.MaxIdleConns,
+		)
+	}
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// Configure connection pool
+	configureConnectionPool(db, config)
+
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	logger.Info("Successfully connected to database", "host", host, "port", port, "database", dbname)
+	logger.Info("Successfully connected to database", "dsn", dsn)
+
 	return &DB{db}, nil
+}
+
+// loadDBConfig loads database configuration from environment
+func loadDBConfig() *DBConfig {
+	provider := getEnv(constants.EnvDBProvider, constants.DefaultDBProvider)
+
+	// Default SSL mode depends on provider
+	defaultSSLMode := constants.DefaultSSLMode
+	if provider == constants.DBProviderSupabase {
+		defaultSSLMode = constants.SupabaseSSLMode
+	}
+
+	config := &DBConfig{
+		Provider:        provider,
+		Host:            getEnv(constants.EnvDBHost, constants.DefaultDBHost),
+		Port:            getEnv(constants.EnvDBPort, constants.DefaultDBPort),
+		User:            getEnv(constants.EnvDBUser, constants.DefaultDBUser),
+		Password:        getEnv(constants.EnvDBPassword, constants.DefaultDBPassword),
+		DBName:          getEnv(constants.EnvDBName, constants.DefaultDBName),
+		SSLMode:         getEnv(constants.EnvDBSSLMode, defaultSSLMode),
+		ConnectionURL:   getEnv(constants.EnvDBConnectionURL, ""),
+		MaxOpenConns:    getEnvAsInt(constants.EnvDBMaxOpenConns, constants.SupabaseDefaultMaxOpenConns),
+		MaxIdleConns:    getEnvAsInt(constants.EnvDBMaxIdleConns, constants.SupabaseDefaultMaxIdleConns),
+		ConnMaxLifetime: time.Duration(getEnvAsInt(constants.EnvDBConnMaxLifetime, constants.SupabaseDefaultConnMaxLife)) * time.Second,
+		ConnMaxIdleTime: time.Duration(getEnvAsInt(constants.EnvDBConnMaxIdleTime, constants.SupabaseDefaultConnMaxIdle)) * time.Second,
+		SupabasePooler:  getEnv(constants.EnvSupabasePooler, constants.SupabaseDefaultPoolerMode),
+	}
+
+	return config
+}
+
+// buildDSN builds a PostgreSQL connection string from config
+func buildDSN(config *DBConfig) string {
+	// Base DSN
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode)
+
+	// Add Supabase-specific parameters if using Supabase
+	if config.Provider == constants.DBProviderSupabase {
+		// Add pooler mode parameter for Supabase
+		// This tells Supabase which pooler mode to use (transaction, session, or statement)
+		if config.SupabasePooler != "" {
+			dsn += " options='-c search_path=public'"
+		}
+	}
+
+	return dsn
+}
+
+// configureConnectionPool sets up connection pool parameters
+func configureConnectionPool(db *sql.DB, config *DBConfig) {
+	db.SetMaxOpenConns(config.MaxOpenConns)
+	db.SetMaxIdleConns(config.MaxIdleConns)
+	db.SetConnMaxLifetime(config.ConnMaxLifetime)
+	db.SetConnMaxIdleTime(config.ConnMaxIdleTime)
 }
 
 // RunMigrations runs database migrations
@@ -72,6 +164,21 @@ func (db *DB) Close() error {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// getEnvAsInt gets an environment variable as an integer with a fallback default value
+func getEnvAsInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
+			return intValue
+		}
+		logger.Warn("Invalid integer value for environment variable, using default",
+			"key", key,
+			"value", value,
+			"default", defaultValue,
+		)
 	}
 	return defaultValue
 }

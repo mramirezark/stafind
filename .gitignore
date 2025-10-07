@@ -373,6 +373,23 @@ env.local
 .env.local
 docker.env
 
+# Backend environment files (keep .example files, ignore actual configs)
+backend/.env
+backend/.env.local
+backend/.env.supabase
+backend/.env.postgres
+backend/.env.production
+backend/.env.staging
+backend/.env.dev
+# Legacy config.env files (for backwards compatibility)
+backend/config.env
+backend/config.env.local
+backend/config.env.supabase
+backend/config.env.postgres
+backend/config.env.production
+backend/config.env.staging
+backend/config.env.dev
+
 # Go binary
 /server
 

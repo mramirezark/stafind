@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"stafind-backend/internal/models"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 type skillRepository struct {
@@ -164,7 +166,8 @@ func (r *skillRepository) GetSkillsByIDs(ids []int) ([]models.Skill, error) {
 	}
 
 	query := r.MustGetQuery("get_skills_by_ids")
-	rows, err := r.db.Query(query, fmt.Sprintf("{%s}", strings.Join(strings.Split(fmt.Sprintf("%d", ids[0]), ""), ",")))
+	// Use pq.Array() to convert Go slice to PostgreSQL array
+	rows, err := r.db.Query(query, pq.Array(ids))
 	if err != nil {
 		return nil, err
 	}

@@ -62,6 +62,19 @@ const (
 	DefaultDBName     = "stafind"
 	DefaultSSLMode    = "disable"
 
+	// Database providers
+	DBProviderPostgres = "postgres"
+	DBProviderSupabase = "supabase"
+	DefaultDBProvider  = DBProviderPostgres
+
+	// Supabase-specific defaults
+	SupabaseSSLMode             = "require"
+	SupabaseDefaultPoolerMode   = "transaction" // transaction, session, or statement
+	SupabaseDefaultMaxOpenConns = 25
+	SupabaseDefaultMaxIdleConns = 5
+	SupabaseDefaultConnMaxLife  = 300 // seconds (5 minutes)
+	SupabaseDefaultConnMaxIdle  = 60  // seconds (1 minute)
+
 	// Flyway configuration
 	DefaultFlywayLocations = "./flyway_migrations"
 )
@@ -74,6 +87,13 @@ const (
 	EnvDBPassword        = "DB_PASSWORD"
 	EnvDBName            = "DB_NAME"
 	EnvDBSSLMode         = "DB_SSLMODE"
+	EnvDBProvider        = "DB_PROVIDER"  // postgres or supabase
+	EnvDBConnectionURL   = "DATABASE_URL" // Optional: Full connection string (Supabase format)
+	EnvDBMaxOpenConns    = "DB_MAX_OPEN_CONNS"
+	EnvDBMaxIdleConns    = "DB_MAX_IDLE_CONNS"
+	EnvDBConnMaxLifetime = "DB_CONN_MAX_LIFETIME"
+	EnvDBConnMaxIdleTime = "DB_CONN_MAX_IDLE_TIME"
+	EnvSupabasePooler    = "SUPABASE_POOLER_MODE" // transaction, session, or statement
 	EnvFlywayLocations   = "FLYWAY_LOCATIONS"
 	EnvExternalAPIKey    = "EXTERNAL_API_KEY"
 	EnvServiceToken      = "SERVICE_TOKEN"

@@ -21,7 +21,7 @@ StaffFind is a comprehensive application that allows employees to submit job des
 ### Backend
 - **Go 1.21+** - Latest Go version for high performance
 - **Fiber** - Express-inspired HTTP web framework for Go
-- **PostgreSQL** - Database for data persistence
+- **PostgreSQL / Supabase** - Database for data persistence (easy switching between providers)
 - **goflyway** - Flyway-style database migrations
 - **Layered Architecture** - Handler-Service-Repository pattern
 - **CORS** - Cross-origin resource sharing support
@@ -112,6 +112,8 @@ make full-dev
    PORT=8080
    GIN_MODE=debug
    ```
+   
+   **Note:** The backend checks `.env` first for consistency with the frontend. Legacy `config.env` files are still supported as fallback.
 
 4. **Set up PostgreSQL database:**
    ```bash
@@ -124,6 +126,48 @@ make full-dev
    ```
 
    The API will be available at `http://localhost:8080`
+
+## Database Configuration
+
+StaffFind supports both local PostgreSQL and Supabase as database providers. You can easily switch between them by changing environment variables.
+
+### Using Local PostgreSQL (Default)
+
+Follow the backend setup steps above. The default configuration uses local PostgreSQL.
+
+### Using Supabase
+
+To use Supabase instead of local PostgreSQL:
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+
+2. **Get your connection string** from Project Settings > Database
+
+3. **Update your `.env` file:**
+   ```env
+   DB_PROVIDER=supabase
+   DATABASE_URL=postgresql://postgres.xxxxxxxxxxxx:your-password@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+   ```
+
+4. **Run the server** - migrations will run automatically
+
+**📚 Supabase Documentation:**
+- **[SUPABASE_CONNECTION_GUIDE.md](SUPABASE_CONNECTION_GUIDE.md)** - Simple visual guide (start here!)
+- **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)** - Comprehensive setup guide
+- **[backend/QUICK_DB_SWITCH.md](backend/QUICK_DB_SWITCH.md)** - Quick reference for switching
+
+### Switching Between Providers
+
+You can maintain multiple environment files:
+```bash
+# Use local PostgreSQL
+cp config.env.example .env
+
+# Use Supabase
+cp supabase.env.example .env
+```
+
+The application automatically configures SSL, connection pooling, and other settings based on the selected provider.
 
 ### Frontend Setup
 
@@ -265,6 +309,40 @@ Frontend tests:
 cd frontend
 npm test
 ```
+
+### Database Management
+
+#### Reset/Clean Database
+
+```bash
+# For local PostgreSQL (requires Docker)
+make db-clean
+
+# For Supabase (requires psql installed)
+make db-clean-supabase
+
+# For ANY database - PostgreSQL or Supabase (pure Go - no extra tools needed) ⭐
+make db-clean-go
+```
+
+**⚠️ Warning:** These commands will delete all data and reset the database to a fresh state with migrations applied.
+
+**💡 Recommended:** Use `make db-clean-go` - it works with both PostgreSQL and Supabase without requiring psql or Docker!
+
+#### Switch Database Provider
+
+```bash
+# Switch to local PostgreSQL
+make db-use-postgres
+
+# Switch to Supabase (requires config.env.supabase)
+make db-use-supabase
+
+# Show current database configuration
+make db-show-config
+```
+
+**📚 For complete database management documentation, see [DATABASE_MANAGEMENT.md](DATABASE_MANAGEMENT.md)**
 
 ### Database Migrations
 

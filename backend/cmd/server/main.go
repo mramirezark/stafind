@@ -21,8 +21,15 @@ func main() {
 	log := logger.Get()
 
 	// Load environment variables
+	// Try .env first (standard), then fall back to config.env (legacy)
 	if err := godotenv.Load(); err != nil {
-		log.Info("No .env file found, using environment variables")
+		if err := godotenv.Load("config.env"); err != nil {
+			log.Info("No .env or config.env file found, using environment variables")
+		} else {
+			log.Info("Loaded environment from config.env (consider renaming to .env)")
+		}
+	} else {
+		log.Info("Loaded environment from .env")
 	}
 
 	// Initialize database
