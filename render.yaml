@@ -1,0 +1,52 @@
+# Render Blueprint - Deploy Full Stack StaffFind
+# This file deploys frontend, backend, and database together on Render for free!
+
+services:
+  # Backend Service (Go/Fiber)
+  - type: web
+    name: staffm-backend
+    runtime: go
+    region: oregon  # Change to your preferred region
+    plan: free      # Free tier
+    buildCommand: cd backend && go build -o server cmd/server/main.go
+    startCommand: cd backend && ./server
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: GIN_MODE
+        value: release
+      - key: DB_PROVIDER
+        value: supabase
+      - key: DATABASE_URL
+        fromDatabase:
+          name: staffm
+          property: connectionString
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false  # Set this manually to your frontend URL after deployment
+      - key: LOG_LEVEL
+        value: info
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # Frontend Service (Next.js)
+  - type: web
+    name: staffm-frontend
+    runtime: node
+    region: oregon  # Same region as backend for lower latency
+    plan: free      # Free tier
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false  # Set this manually to your backend URL after deployment
+    autoDeploy: true
+
+# After deployment:
+# 1. Get backend URL from Render dashboard (e.g., https://stafind-backend.onrender.com)
+# 2. Set NEXT_PUBLIC_API_URL in frontend service to backend URL
+# 3. Get frontend URL (e.g., https://stafind-frontend.onrender.com)
+# 4. Set CORS_ALLOWED_ORIGINS in backend service to frontend URL
+# 5. Run migrations (see FULLSTACK_DEPLOYMENT.md)
+
