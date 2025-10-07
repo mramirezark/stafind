@@ -18,9 +18,7 @@ services:
       - key: DB_PROVIDER
         value: supabase
       - key: DATABASE_URL
-        fromDatabase:
-          name: staffm
-          property: connectionString
+        value: postgresql://postgres.sijmfiggqrornhubfsyf:73GW8mZ&QBaDuvu@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true
       - key: CORS_ALLOWED_ORIGINS
         sync: false  # Set this manually to your frontend URL after deployment
       - key: LOG_LEVEL
