@@ -17,6 +17,8 @@ func SetupAllRoutes(
 	extractionHandlers *handlers.ExtractHandlers,
 	matchingHandlers *handlers.MatchingHandler,
 	cvExtractHandlers *handlers.CVExtractHandlers,
+	huggingFaceHandlers *handlers.HuggingFaceHandlers,
+	combinedExtractHandlers *handlers.CombinedExtractHandlers,
 ) *fiber.App {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -40,8 +42,10 @@ func SetupAllRoutes(
 	SetupPublicRoutes(app, h, apiKeyHandlers)
 	SetupAuthRoutes(app, authHandlers)
 	SetupExtractRoutes(app, extractionHandlers)
+	SetupCombinedExtractRoutes(app, combinedExtractHandlers)
 	SetupMatchingRoutes(app, matchingHandlers)
 	SetupCVExtractRoutes(app, cvExtractHandlers)
+	SetupHuggingFaceRoutes(app, huggingFaceHandlers)
 	SetupAPIRoutes(app, h, authHandlers, dashboardHandlers, apiKeyHandlers)
 	SetupAdminRoutes(app, authHandlers, apiKeyHandlers)
 

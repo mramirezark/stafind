@@ -8,6 +8,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
+	github.com/huggingface/go-huggingface v0.0.0-20240115120000-000000000000
 	github.com/jdkato/prose/v2 v2.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9

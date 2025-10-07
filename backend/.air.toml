@@ -11,7 +11,8 @@ tmp_dir = "tmp"
   # Binary file yields from `cmd`.
   bin = "tmp/main"
   # Customize binary, can setup environment variables when run your app.
-  full_bin = "APP_ENV=dev APP_USER=air ./tmp/main"
+  # Environment variables are loaded from .env file by godotenv in Go code
+  full_bin = "./tmp/main"
   # Watch these filename extensions.
   include_ext = ["go", "tpl", "tmpl", "html", "sql", "yaml", "yml"]
   # Ignore these filename extensions or directories.

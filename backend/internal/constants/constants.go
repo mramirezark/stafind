@@ -68,21 +68,22 @@ const (
 
 // Environment Variables
 const (
-	EnvDBHost          = "DB_HOST"
-	EnvDBPort          = "DB_PORT"
-	EnvDBUser          = "DB_USER"
-	EnvDBPassword      = "DB_PASSWORD"
-	EnvDBName          = "DB_NAME"
-	EnvDBSSLMode       = "DB_SSLMODE"
-	EnvFlywayLocations = "FLYWAY_LOCATIONS"
-	EnvExternalAPIKey  = "EXTERNAL_API_KEY"
-	EnvServiceToken    = "SERVICE_TOKEN"
-	EnvTeamsWebhookURL = "TEAMS_WEBHOOK_URL"
-	EnvSMTPHost        = "SMTP_HOST"
-	EnvSMTPPort        = "SMTP_PORT"
-	EnvSMTPUser        = "SMTP_USER"
-	EnvSMTPPass        = "SMTP_PASS"
-	EnvAdminEmail      = "ADMIN_EMAIL"
+	EnvDBHost            = "DB_HOST"
+	EnvDBPort            = "DB_PORT"
+	EnvDBUser            = "DB_USER"
+	EnvDBPassword        = "DB_PASSWORD"
+	EnvDBName            = "DB_NAME"
+	EnvDBSSLMode         = "DB_SSLMODE"
+	EnvFlywayLocations   = "FLYWAY_LOCATIONS"
+	EnvExternalAPIKey    = "EXTERNAL_API_KEY"
+	EnvServiceToken      = "SERVICE_TOKEN"
+	EnvTeamsWebhookURL   = "TEAMS_WEBHOOK_URL"
+	EnvSMTPHost          = "SMTP_HOST"
+	EnvSMTPPort          = "SMTP_PORT"
+	EnvSMTPUser          = "SMTP_USER"
+	EnvSMTPPass          = "SMTP_PASS"
+	EnvAdminEmail        = "ADMIN_EMAIL"
+	EnvHuggingFaceAPIKey = "HUGGINGFACE_API_KEY"
 )
 
 // Development defaults

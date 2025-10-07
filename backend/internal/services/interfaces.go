@@ -119,3 +119,13 @@ type ModernNERService interface {
 	GetSupportedMethods() []string
 	GetMethodConfidence(method string) float64
 }
+
+// HuggingFaceSkillExtractionService defines the interface for Hugging Face skill extraction
+type HuggingFaceSkillExtractionService interface {
+	ExtractSkills(request *models.HuggingFaceSkillExtractionRequest) (*models.HuggingFaceSkillExtractionResponse, error)
+	ExtractSkillsFromText(text string) (*models.HuggingFaceSkillExtractionResponse, error)
+	GetAvailableModels() ([]string, error)
+	GetModelConfig(modelName string) (*models.HuggingFaceModelConfig, error)
+	GetStats() (*models.SkillExtractionStats, error)
+	HealthCheck() error
+}

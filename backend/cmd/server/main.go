@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"stafind-backend/cmd/server/routes"
+	"stafind-backend/internal/constants"
 	"stafind-backend/internal/database"
 	"stafind-backend/internal/handlers"
 	"stafind-backend/internal/logger"
@@ -108,6 +109,13 @@ func main() {
 	candidateStorageService := services.NewCandidateStorageService(employeeRepo, skillRepo)
 	cvExtractService := services.NewCVExtractService(cvExtractRepo)
 
+	// Initialize Hugging Face service
+	huggingFaceAPIKey := os.Getenv(constants.EnvHuggingFaceAPIKey)
+	if huggingFaceAPIKey == "" {
+		log.Warn("HUGGINGFACE_API_KEY not set, Hugging Face service will not be available")
+	}
+	huggingFaceService := services.NewHuggingFaceSkillService(huggingFaceAPIKey)
+
 	// Initialize handlers
 	h := handlers.NewHandlers(employeeService, searchService, skillService, categoryService, aiAgentService, nerService)
 	authHandlers := handlers.NewAuthHandlers(userService, roleService)
@@ -116,6 +124,8 @@ func main() {
 	extractionHandlers := handlers.NewExtractHandlers(extractionService, aiAgentService, candidateStorageService, cvExtractService)
 	matchingHandlers := handlers.NewMatchingHandler(aiAgentService)
 	cvExtractHandlers := handlers.NewCVExtractHandlers(cvExtractService)
+	huggingFaceHandlers := handlers.NewHuggingFaceHandlers(huggingFaceService)
+	combinedExtractHandlers := handlers.NewCombinedExtractHandlers(extractionService, aiAgentService, candidateStorageService, cvExtractService, huggingFaceService)
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -124,7 +134,7 @@ func main() {
 	}
 
 	// Setup routes using enhanced structure
-	app := routes.SetupAllRoutes(h, authHandlers, dashboardHandlers, apiKeyHandlers, extractionHandlers, matchingHandlers, cvExtractHandlers)
+	app := routes.SetupAllRoutes(h, authHandlers, dashboardHandlers, apiKeyHandlers, extractionHandlers, matchingHandlers, cvExtractHandlers, huggingFaceHandlers, combinedExtractHandlers)
 
 	log.Info("Server starting", "port", port)
 	if err := app.Listen(":" + port); err != nil {
