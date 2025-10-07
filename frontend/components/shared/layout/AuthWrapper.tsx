@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Box, CircularProgress } from '@mui/material'
+import { Box, CircularProgress, Typography } from '@mui/material'
 import { useAuth } from '@/lib/auth'
 import { LoginForm, RegisterForm } from '@/components/auth'
 import { AuthWrapperProps } from '@/types'

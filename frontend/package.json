@@ -16,11 +16,13 @@
     "@mui/lab": "^5.0.0-alpha.157",
     "@mui/material": "^5.15.0",
     "axios": "^1.6.0",
+    "framer-motion": "^10.16.0",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "swr": "^2.2.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "recharts": "^2.8.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

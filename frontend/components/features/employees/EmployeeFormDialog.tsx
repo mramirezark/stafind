@@ -42,6 +42,7 @@ export function EmployeeFormDialog({
             location: employee?.location || '',
             bio: employee?.bio || '',
             skills: employee?.skills?.map(skill => skill.name) || [],
+            current_project: employee?.current_project || '',
           }}
           onFormDataChange={() => {}} // This will be handled by the parent
           skills={skills}
@@ -62,6 +63,7 @@ export function EmployeeFormDialog({
             location: employee?.location || '',
             bio: employee?.bio || '',
             skills: employee?.skills?.map(skill => skill.name) || [],
+            current_project: employee?.current_project || '',
           })}
           variant="contained"
           disabled={loading}

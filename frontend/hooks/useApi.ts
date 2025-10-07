@@ -279,7 +279,12 @@ export function useAIAgentRequests(limit: number = 50, offset: number = 0) {
 }
 
 export function useAIAgentRequest(id: number) {
-  return useApi(() => aiAgentService.getRequest(id), [id])
+  return useApi(() => {
+    if (id <= 0) {
+      return Promise.resolve(null);
+    }
+    return aiAgentService.getRequest(id);
+  }, [id])
 }
 
 export function useProcessAIAgentRequest() {

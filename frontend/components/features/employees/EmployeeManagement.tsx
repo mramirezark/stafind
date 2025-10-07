@@ -38,7 +38,7 @@ export function EmployeeManagement() {
     levelFilter: '',
     skillFilter: [],
   })
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table')
   const [formOpen, setFormOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [formData, setFormData] = useState<EmployeeFormData>({
@@ -49,6 +49,7 @@ export function EmployeeManagement() {
     location: '',
     bio: '',
     skills: [],
+    current_project: '',
   })
   const [formError, setFormError] = useState<string | null>(null)
   const [formLoading, setFormLoading] = useState(false)
@@ -103,6 +104,7 @@ export function EmployeeManagement() {
       location: '',
       bio: '',
       skills: [],
+      current_project: '',
     })
     setFormError(null)
     setFormOpen(true)
@@ -119,6 +121,7 @@ export function EmployeeManagement() {
       location: employee.location,
       bio: employee.bio || '',
       skills: employee.skills?.map(skill => skill.name) || [],
+      current_project: employee.current_project || '',
     })
     setFormError(null)
     setFormOpen(true)
@@ -144,14 +147,25 @@ export function EmployeeManagement() {
       setFormLoading(true)
       setFormError(null)
 
-      // Convert skills from string array to EmployeeSkillReq format
-      const employeeData = {
-        ...data,
-        skills: data.skills.map(skillName => ({
-          skill_name: skillName,
-          proficiency_level: 3, // Default proficiency level
-          years_experience: 1.0, // Default years of experience
-        }))
+      // Convert skills from string array to EmployeeSkill format
+      const employeeData: Partial<Employee> = {
+        name: data.name,
+        email: data.email,
+        department: data.department,
+        level: data.level,
+        location: data.location,
+        bio: data.bio,
+        current_project: data.current_project,
+        skills: data.skills.map(skillName => {
+          const skill = skills?.find(s => s.name === skillName)
+          return {
+            id: skill?.id || 0,
+            name: skillName,
+            category: skill?.categories?.[0]?.name || 'Other',
+            proficiency_level: 3,
+            years_experience: 1.0
+          }
+        })
       }
 
       if (editingEmployee) {
