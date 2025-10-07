@@ -217,12 +217,16 @@ $RECYCLE.BIN/
 *.sqlite3
 *.db
 
-# PostgreSQL
+# IMPORTANT: Allow migration files!
+!backend/flyway_migrations/*.sql
+!backend/migrations/*.sql
+
+# PostgreSQL (data files only)
 *.pgsql
 *.sql
 
-# MySQL
-*.sql
+# MySQL (data files only)
+# *.sql is already covered above
 
 # ============================================================================
 # BACKEND SPECIFIC

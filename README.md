@@ -393,6 +393,46 @@ For detailed information, see [FLYWAY_MIGRATIONS.md](backend/FLYWAY_MIGRATIONS.m
 4. Add tests if applicable
 5. Submit a pull request
 
+## Deployment
+
+Ready to deploy to production? **Deploy everything for FREE!** 🎉
+
+### 🚀 Quick Deploy (Recommended)
+
+**Deploy complete app (Frontend + Backend + Database) in 10 minutes:**
+
+```bash
+# 1. Push the ready-made render.yaml (already created for you!)
+git add render.yaml
+git commit -m "Add Render config"
+git push
+
+# 2. Go to dashboard.render.com → New + → Blueprint
+# 3. Connect your repository
+# 4. Click "Apply"
+# 5. Done! Your app is live! 🎉
+```
+
+**See:** [RENDER_DEPLOY_QUICK_START.md](RENDER_DEPLOY_QUICK_START.md) for step-by-step instructions.
+
+### 📚 All Deployment Guides
+
+- **[DEPLOYMENT_OPTIONS.md](DEPLOYMENT_OPTIONS.md)** ⭐ Compare all platforms (Render, Railway, Fly.io, Oracle Cloud)
+- **[RENDER_DEPLOY_QUICK_START.md](RENDER_DEPLOY_QUICK_START.md)** - Full-stack deployment in 10 minutes
+- **[FULLSTACK_DEPLOYMENT.md](FULLSTACK_DEPLOYMENT.md)** - Detailed guide for all platforms
+- **[NETLIFY_DEPLOY_QUICK_START.md](NETLIFY_DEPLOY_QUICK_START.md)** - Frontend-only deployment
+
+### 💰 All FREE Options
+
+| Platform | Setup Time | Includes | Cost |
+|----------|-----------|----------|------|
+| **Render** | 10 min | Frontend + Backend + DB (90 days) | $0 |
+| **Railway** | 15 min | Frontend + Backend + DB | $0 ($5 credit) |
+| **Fly.io** | 20 min | Frontend + Backend | $0 |
+| **Oracle Cloud** | 60 min | Everything (forever!) | $0 |
+
+**Recommended:** Use **Render** for deployment + **Supabase** for database (both free forever!)
+
 ## License
 
 This project is licensed under the MIT License.
