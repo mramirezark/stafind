@@ -1,14 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { Box, CircularProgress, Typography } from '@mui/material'
+import { Box, CircularProgress } from '@mui/material'
 import { useAuth } from '@/lib/auth'
-import { LoginForm, RegisterForm } from '@/components/auth'
+import { AuthCard } from '@/components/auth'
 import { AuthWrapperProps } from '@/types'
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
   const { isAuthenticated, isLoading } = useAuth()
-  const [isLoginMode, setIsLoginMode] = useState(true)
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -27,11 +25,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   // Show login/register forms if not authenticated
   if (!isAuthenticated) {
-    return isLoginMode ? (
-      <LoginForm />
-    ) : (
-      <RegisterForm />
-    )
+    return <AuthCard onSuccess={() => window.location.reload()} />
   }
 
   // Show main application if authenticated

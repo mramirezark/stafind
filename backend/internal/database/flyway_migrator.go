@@ -34,12 +34,19 @@ type FlywayConfig struct {
 
 // NewFlywayMigrator creates a new Flyway migrator
 func NewFlywayMigrator(config *FlywayConfig) (*FlywayMigrator, error) {
+	logger.Info("Initializing Flyway migrator...")
+
 	var dsn string
 
 	// Use full connection URL if provided (typically for Supabase)
 	if config.ConnectionURL != "" {
 		dsn = config.ConnectionURL
-		logger.Info("Using DATABASE_URL for Flyway migrations", "provider", config.Provider)
+		logger.Info("Using DATABASE_URL for Flyway migrations",
+			"provider", config.Provider,
+			"connectionURL", maskPassword(dsn),
+			"hasSSLMode", containsParam(dsn, "sslmode"),
+			"hasTimeout", containsParam(dsn, "connect_timeout"),
+		)
 	} else {
 		// Build connection string from individual components
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -48,6 +55,10 @@ func NewFlywayMigrator(config *FlywayConfig) (*FlywayMigrator, error) {
 			"provider", config.Provider,
 			"host", config.Host,
 			"port", config.Port,
+			"database", config.Database,
+			"user", config.User,
+			"ssl_mode", config.SSLMode,
+			"dsn_masked", maskPassword(dsn),
 		)
 	}
 

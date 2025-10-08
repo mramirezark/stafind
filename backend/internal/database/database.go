@@ -39,41 +39,78 @@ type DBConfig struct {
 
 // NewConnection creates a new database connection
 func NewConnection() (*DB, error) {
+	logger.Info("Initializing database connection...")
+
 	config := loadDBConfig()
+	logDBConfig(config)
 
 	var dsn string
 
 	// Use full connection URL if provided (typically for Supabase)
 	if config.ConnectionURL != "" {
 		dsn = config.ConnectionURL
-		logger.Info("Using DATABASE_URL connection string", "provider", config.Provider)
+		logger.Info("Using DATABASE_URL connection string",
+			"provider", config.Provider,
+			"connectionURL", maskPassword(dsn),
+			"hasSSLMode", containsParam(dsn, "sslmode"),
+			"hasTimeout", containsParam(dsn, "connect_timeout"),
+			"hasPooler", containsParam(dsn, "pool_"),
+		)
 	} else {
 		// Build DSN from individual components
 		dsn = buildDSN(config)
-		logger.Info("Successfully connected to database",
+		logger.Info("Built DSN from individual components",
 			"provider", config.Provider,
 			"host", config.Host,
 			"port", config.Port,
 			"database", config.DBName,
+			"user", config.User,
 			"sslmode", config.SSLMode,
-			"max_open_conns", config.MaxOpenConns,
-			"max_idle_conns", config.MaxIdleConns,
+			"supabasePooler", config.SupabasePooler,
 		)
 	}
 
+	logger.Info("Attempting to open database connection...",
+		"dsn_masked", maskPassword(dsn),
+		"connection_pool_config", map[string]interface{}{
+			"max_open_conns":     config.MaxOpenConns,
+			"max_idle_conns":     config.MaxIdleConns,
+			"conn_max_lifetime":  config.ConnMaxLifetime.String(),
+			"conn_max_idle_time": config.ConnMaxIdleTime.String(),
+		},
+	)
+
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
+		logger.Error("Failed to open database connection", "error", err.Error())
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	// Configure connection pool
+	logger.Info("Configuring connection pool...")
 	configureConnectionPool(db, config)
 
+	logger.Info("Testing database connection with ping...")
 	if err := db.Ping(); err != nil {
+		logger.Error("Failed to ping database",
+			"error", err.Error(),
+			"provider", config.Provider,
+			"host", config.Host,
+			"port", config.Port,
+		)
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	logger.Info("Successfully connected to database", "dsn", dsn)
+	logger.Info("✅ Database connection established successfully",
+		"provider", config.Provider,
+		"host", config.Host,
+		"port", config.Port,
+		"database", config.DBName,
+		"connection_pool", map[string]interface{}{
+			"max_open_conns": config.MaxOpenConns,
+			"max_idle_conns": config.MaxIdleConns,
+		},
+	)
 
 	return &DB{db}, nil
 }
@@ -181,4 +218,73 @@ func getEnvAsInt(key string, defaultValue int) int {
 		)
 	}
 	return defaultValue
+}
+
+// logDBConfig logs the database configuration (with sensitive data masked)
+func logDBConfig(config *DBConfig) {
+	logger.Info("Database configuration loaded",
+		"provider", config.Provider,
+		"host", config.Host,
+		"port", config.Port,
+		"database", config.DBName,
+		"user", config.User,
+		"password_set", config.Password != "",
+		"sslmode", config.SSLMode,
+		"connection_url_set", config.ConnectionURL != "",
+		"supabase_pooler", config.SupabasePooler,
+		"connection_pool", map[string]interface{}{
+			"max_open_conns":     config.MaxOpenConns,
+			"max_idle_conns":     config.MaxIdleConns,
+			"conn_max_lifetime":  config.ConnMaxLifetime.String(),
+			"conn_max_idle_time": config.ConnMaxIdleTime.String(),
+		},
+	)
+
+	// Log environment variables status
+	logger.Info("Environment variables status",
+		"DB_PROVIDER", getEnvStatus(constants.EnvDBProvider),
+		"DATABASE_URL", getEnvStatus(constants.EnvDBConnectionURL),
+		"DB_HOST", getEnvStatus(constants.EnvDBHost),
+		"DB_PORT", getEnvStatus(constants.EnvDBPort),
+		"DB_USER", getEnvStatus(constants.EnvDBUser),
+		"DB_PASSWORD", getEnvStatus(constants.EnvDBPassword),
+		"DB_NAME", getEnvStatus(constants.EnvDBName),
+		"DB_SSL_MODE", getEnvStatus(constants.EnvDBSSLMode),
+	)
+}
+
+// maskPassword masks sensitive information in connection strings
+func maskPassword(dsn string) string {
+	// Simple password masking - replace password part with ***
+	if strings.Contains(dsn, ":") && strings.Contains(dsn, "@") {
+		parts := strings.Split(dsn, "@")
+		if len(parts) >= 2 {
+			userPart := parts[0]
+			if strings.Contains(userPart, ":") {
+				userParts := strings.Split(userPart, ":")
+				if len(userParts) >= 3 {
+					// postgresql://user:password@host
+					return userParts[0] + ":***@" + strings.Join(parts[1:], "@")
+				}
+			}
+		}
+	}
+	return dsn
+}
+
+// containsParam checks if a URL contains a specific parameter
+func containsParam(url, param string) bool {
+	return strings.Contains(url, param+"=")
+}
+
+// getEnvStatus returns the status of an environment variable
+func getEnvStatus(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return "not_set"
+	}
+	if key == constants.EnvDBPassword || key == constants.EnvDBConnectionURL {
+		return "set_masked"
+	}
+	return "set"
 }
