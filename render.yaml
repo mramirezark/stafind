@@ -6,7 +6,7 @@ services:
   - type: web
     name: staffm-backend
     runtime: go
-    region: oregon  # Change to your preferred region
+    region: us-east  # Changed to match Supabase region
     plan: free      # Free tier
     rootDir: backend
     buildCommand: |
@@ -26,6 +26,16 @@ services:
         sync: false  # Set this manually to your frontend URL after deployment
       - key: LOG_LEVEL
         value: info
+      - key: DB_CONN_TIMEOUT
+        value: 60
+      - key: DB_CONN_MAX_LIFETIME
+        value: 600
+      - key: DB_CONN_MAX_IDLE_TIME
+        value: 300
+      - key: DB_MAX_OPEN_CONNS
+        value: 5
+      - key: DB_MAX_IDLE_CONNS
+        value: 2
     healthCheckPath: /health
     autoDeploy: true
 
@@ -33,7 +43,7 @@ services:
   - type: web
     name: staffm-frontend
     runtime: node
-    region: oregon  # Same region as backend for lower latency
+    region: us-east  # Same region as backend for lower latency
     plan: free      # Free tier
     rootDir: frontend
     buildCommand: npm install && npm run build
