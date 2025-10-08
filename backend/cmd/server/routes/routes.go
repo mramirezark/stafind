@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"os"
 	"stafind-backend/internal/handlers"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,8 +33,14 @@ func SetupAllRoutes(
 
 	// Add global middleware
 	app.Use(fiberLogger.New())
+
+	// Configure CORS
+	corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if corsOrigins == "" {
+		corsOrigins = "*"
+	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: corsOrigins,
 		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders: "Origin,Content-Type,Accept,Authorization,X-API-Key",
 	}))
