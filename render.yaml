@@ -6,7 +6,7 @@ services:
   - type: web
     name: staffm-backend
     runtime: go
-    region: us-east  # Changed to match Supabase region
+    region: ohio  # Changed to match Supabase region
     plan: free      # Free tier
     rootDir: backend
     buildCommand: |
@@ -43,7 +43,7 @@ services:
   - type: web
     name: staffm-frontend
     runtime: node
-    region: us-east  # Same region as backend for lower latency
+    region: ohio  # Same region as backend for lower latency
     plan: free      # Free tier
     rootDir: frontend
     buildCommand: npm install && npm run build
