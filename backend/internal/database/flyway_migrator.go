@@ -19,48 +19,24 @@ type FlywayMigrator struct {
 	location string
 }
 
-// FlywayConfig holds configuration for Flyway migrations
+// FlywayConfig holds configuration for Flyway migrations (now uses SharedDBConfig)
 type FlywayConfig struct {
-	Provider      string
-	Host          string
-	Port          string
-	User          string
-	Password      string
-	Database      string
-	SSLMode       string
-	ConnectionURL string
-	Location      string
+	*SharedDBConfig
+	Location string
 }
 
 // NewFlywayMigrator creates a new Flyway migrator
 func NewFlywayMigrator(config *FlywayConfig) (*FlywayMigrator, error) {
 	logger.Info("Initializing Flyway migrator...")
 
-	var dsn string
+	dsn := config.BuildDSN()
 
-	// Use full connection URL if provided (typically for Supabase)
-	if config.ConnectionURL != "" {
-		dsn = config.ConnectionURL
-		logger.Info("Using DATABASE_URL for Flyway migrations",
-			"provider", config.Provider,
-			"connectionURL", maskPassword(dsn),
-			"hasSSLMode", containsParam(dsn, "sslmode"),
-			"hasTimeout", containsParam(dsn, "connect_timeout"),
-		)
-	} else {
-		// Build connection string from individual components
-		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-			config.Host, config.Port, config.User, config.Password, config.Database, config.SSLMode)
-		logger.Info("Using individual parameters for Flyway migrations",
-			"provider", config.Provider,
-			"host", config.Host,
-			"port", config.Port,
-			"database", config.Database,
-			"user", config.User,
-			"ssl_mode", config.SSLMode,
-			"dsn_masked", maskPassword(dsn),
-		)
-	}
+	logger.Info("Using shared database configuration for Flyway migrations",
+		"provider", config.Provider,
+		"connectionURL", config.GetMaskedDSN(),
+		"hasSSLMode", config.HasSSLMode(),
+		"hasTimeout", config.HasTimeout(),
+	)
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -311,25 +287,12 @@ type AppliedMigration struct {
 	Success       bool
 }
 
-// NewFlywayConfigFromEnv creates a FlywayConfig from environment variables
+// NewFlywayConfigFromEnv creates a FlywayConfig from environment variables using shared configuration
 func NewFlywayConfigFromEnv() *FlywayConfig {
-	provider := getEnv(constants.EnvDBProvider, constants.DefaultDBProvider)
-
-	// Default SSL mode depends on provider
-	defaultSSLMode := constants.DefaultSSLMode
-	if provider == constants.DBProviderSupabase {
-		defaultSSLMode = constants.SupabaseSSLMode
-	}
+	sharedConfig := LoadSharedDBConfig()
 
 	return &FlywayConfig{
-		Provider:      provider,
-		Host:          getEnv(constants.EnvDBHost, constants.DefaultDBHost),
-		Port:          getEnv(constants.EnvDBPort, constants.DefaultDBPort),
-		User:          getEnv(constants.EnvDBUser, constants.DefaultDBUser),
-		Password:      getEnv(constants.EnvDBPassword, constants.DefaultDBPassword),
-		Database:      getEnv(constants.EnvDBName, constants.DefaultDBName),
-		SSLMode:       getEnv(constants.EnvDBSSLMode, defaultSSLMode),
-		ConnectionURL: getEnv(constants.EnvDBConnectionURL, ""),
-		Location:      getEnv(constants.EnvFlywayLocations, constants.DefaultFlywayLocations),
+		SharedDBConfig: sharedConfig,
+		Location:       getEnv(constants.EnvFlywayLocations, constants.DefaultFlywayLocations),
 	}
 }

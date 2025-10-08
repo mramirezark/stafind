@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"stafind-backend/internal/models"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -349,15 +350,12 @@ func (r *employeeRepository) Update(id int, req *models.CreateEmployeeRequest) (
 		return nil, err
 	}
 
-	// Add new skills
-	fmt.Printf("DEBUG: Adding %d new skills for employee ID: %d\n", len(req.Skills), id)
-	for i, skillReq := range req.Skills {
-		fmt.Printf("DEBUG: Adding skill %d: %s\n", i+1, skillReq.SkillName)
-		err = r.addEmployeeSkill(tx, id, &skillReq)
-		if err != nil {
-			fmt.Printf("DEBUG: Failed to add skill %s: %v\n", skillReq.SkillName, err)
-			return nil, err
-		}
+	// Add new skills using batch operation (optimized, no N+1)
+	fmt.Printf("DEBUG: Adding %d new skills for employee ID: %d (batch mode)\n", len(req.Skills), id)
+	err = r.addEmployeeSkillsBatch(tx, id, req.Skills)
+	if err != nil {
+		fmt.Printf("DEBUG: Failed to batch add skills: %v\n", err)
+		return nil, err
 	}
 
 	fmt.Printf("DEBUG: Committing transaction\n")
@@ -411,15 +409,12 @@ func (r *employeeRepository) UpdateWithExtraction(id int, req *models.CreateEmpl
 		return nil, err
 	}
 
-	// Add new skills
-	fmt.Printf("DEBUG: Adding %d skills for employee ID: %d\n", len(req.Skills), id)
-	for i, skillReq := range req.Skills {
-		fmt.Printf("DEBUG: Adding skill %d: %s\n", i+1, skillReq.SkillName)
-		err = r.addEmployeeSkill(tx, id, &skillReq)
-		if err != nil {
-			fmt.Printf("DEBUG: Failed to add skill %s: %v\n", skillReq.SkillName, err)
-			return nil, err
-		}
+	// Add new skills using batch operation (optimized, no N+1)
+	fmt.Printf("DEBUG: Adding %d skills for employee ID: %d (batch mode)\n", len(req.Skills), id)
+	err = r.addEmployeeSkillsBatch(tx, id, req.Skills)
+	if err != nil {
+		fmt.Printf("DEBUG: Failed to batch add skills: %v\n", err)
+		return nil, err
 	}
 
 	fmt.Printf("DEBUG: Committing extraction update transaction\n")
@@ -509,6 +504,106 @@ func (r *employeeRepository) addEmployeeSkill(tx *sql.Tx, employeeID int, skillR
 	query = r.MustGetQuery("add_employee_skill")
 	_, err = tx.Exec(query, employeeID, skillID, skillReq.ProficiencyLevel, skillReq.YearsExperience)
 	return err
+}
+
+// addEmployeeSkillsBatch efficiently adds multiple skills to an employee using batch operations
+func (r *employeeRepository) addEmployeeSkillsBatch(tx *sql.Tx, employeeID int, skills []models.EmployeeSkillReq) error {
+	if len(skills) == 0 {
+		return nil
+	}
+
+	// Step 1: Extract all skill names
+	skillNames := make([]string, len(skills))
+	skillMap := make(map[string]models.EmployeeSkillReq)
+	for i, skill := range skills {
+		skillNames[i] = skill.SkillName
+		skillMap[skill.SkillName] = skill
+	}
+
+	// Step 2: Batch fetch existing skills
+	skillIDMap := make(map[string]int)
+	if len(skillNames) > 0 {
+		query := `SELECT id, name FROM skills WHERE name = ANY($1)`
+		rows, err := tx.Query(query, pq.Array(skillNames))
+		if err != nil {
+			return fmt.Errorf("failed to fetch skills: %w", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var id int
+			var name string
+			if err := rows.Scan(&id, &name); err != nil {
+				return err
+			}
+			skillIDMap[name] = id
+		}
+	}
+
+	// Step 3: Create missing skills in batch
+	var missingSkills []string
+	for _, name := range skillNames {
+		if _, exists := skillIDMap[name]; !exists {
+			missingSkills = append(missingSkills, name)
+		}
+	}
+
+	if len(missingSkills) > 0 {
+		// Build batch INSERT for missing skills
+		valueStrings := make([]string, len(missingSkills))
+		valueArgs := make([]interface{}, len(missingSkills))
+		for i, name := range missingSkills {
+			valueStrings[i] = fmt.Sprintf("($%d)", i+1)
+			valueArgs[i] = name
+		}
+		createQuery := fmt.Sprintf(
+			"INSERT INTO skills (name) VALUES %s RETURNING id, name",
+			strings.Join(valueStrings, ", "),
+		)
+
+		rows, err := tx.Query(createQuery, valueArgs...)
+		if err != nil {
+			return fmt.Errorf("failed to create skills: %w", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var id int
+			var name string
+			if err := rows.Scan(&id, &name); err != nil {
+				return err
+			}
+			skillIDMap[name] = id
+		}
+	}
+
+	// Step 4: Batch insert employee-skill relationships
+	valueStrings := make([]string, len(skills))
+	valueArgs := make([]interface{}, 0, len(skills)*4)
+	for i, skill := range skills {
+		skillID, ok := skillIDMap[skill.SkillName]
+		if !ok {
+			return fmt.Errorf("skill ID not found for: %s", skill.SkillName)
+		}
+
+		valueStrings[i] = fmt.Sprintf("($%d, $%d, $%d, $%d)",
+			i*4+1, i*4+2, i*4+3, i*4+4)
+		valueArgs = append(valueArgs, employeeID, skillID, skill.ProficiencyLevel, skill.YearsExperience)
+	}
+
+	insertQuery := fmt.Sprintf(
+		`INSERT INTO employee_skills (employee_id, skill_id, proficiency_level, years_experience) 
+		 VALUES %s ON CONFLICT (employee_id, skill_id) 
+		 DO UPDATE SET proficiency_level = EXCLUDED.proficiency_level, years_experience = EXCLUDED.years_experience`,
+		strings.Join(valueStrings, ", "),
+	)
+
+	_, err := tx.Exec(insertQuery, valueArgs...)
+	if err != nil {
+		return fmt.Errorf("failed to insert employee skills: %w", err)
+	}
+
+	return nil
 }
 
 // GetEmployeesWithSkills gets employees who have any of the specified skills (optimized, no N+1)

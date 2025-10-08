@@ -266,35 +266,31 @@ func (r *cvExtractRepository) Update(id int, tracking models.CVExtractUpdate) (*
 	// Add updated_at
 	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
 	args = append(args, time.Now())
-	argIndex++
 
-	// Build the query
+	// Build the query - join all setParts with commas
+	setClause := ""
+	for i, part := range setParts {
+		if i > 0 {
+			setClause += ", "
+		}
+		setClause += part
+	}
+
 	query := fmt.Sprintf(`
 		UPDATE cv_extract 
 		SET %s
 		WHERE id = $1
-		RETURNING id, status, num_files, files_processed, files_failed,
+		RETURNING id, extract_request_id, status, num_files, files_processed, files_failed,
 		          total_processing_time_ms, average_processing_time_ms,
 		          started_at, completed_at, error_message, metadata,
 		          created_at, updated_at`,
-		fmt.Sprintf("%s", setParts[0]),
-	)
-
-	// Fix the query building
-	query = fmt.Sprintf(`
-		UPDATE cv_extract 
-		SET %s
-		WHERE id = $1
-		RETURNING id, status, num_files, files_processed, files_failed,
-		          total_processing_time_ms, average_processing_time_ms,
-		          started_at, completed_at, error_message, metadata,
-		          created_at, updated_at`,
-		fmt.Sprintf("%s", setParts[0]),
+		setClause,
 	)
 
 	var cvExtract models.CVExtract
 	err := r.db.QueryRow(query, args...).Scan(
 		&cvExtract.ID,
+		&cvExtract.ExtractRequestID,
 		&cvExtract.Status,
 		&cvExtract.NumFiles,
 		&cvExtract.FilesProcessed,
@@ -366,7 +362,7 @@ func (r *cvExtractRepository) List(filters CVExtractFilters) ([]models.CVExtract
 
 	whereClause := ""
 	if len(whereConditions) > 0 {
-		whereClause = "WHERE " + fmt.Sprintf("%s", whereConditions[0])
+		whereClause = "WHERE " + whereConditions[0]
 		for i := 1; i < len(whereConditions); i++ {
 			whereClause += " AND " + whereConditions[i]
 		}

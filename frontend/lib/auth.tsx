@@ -26,27 +26,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedToken = localStorage.getItem('authToken')
         const storedUser = localStorage.getItem('authUser')
 
+        console.log('[Auth] Initializing auth...', { 
+          hasToken: !!storedToken, 
+          hasUser: !!storedUser 
+        })
+
         if (storedToken && storedUser) {
           setToken(storedToken)
-          setUser(JSON.parse(storedUser))
+          const parsedUser = JSON.parse(storedUser)
+          setUser(parsedUser)
+          
+          console.log('[Auth] Set user and token from localStorage', parsedUser)
           
           // Set authorization header
           api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
           
-          // Verify token is still valid by fetching profile
+          // Verify token is still valid by fetching profile (non-blocking)
           try {
+            console.log('[Auth] Verifying token...')
             const response = await endpoints.auth.getProfile()
             setUser(response.data)
             localStorage.setItem('authUser', JSON.stringify(response.data))
+            console.log('[Auth] Token verified successfully')
           } catch (error) {
-            // Token is invalid, clear auth state
-            clearAuthState()
+            console.error('[Auth] Token verification failed:', error)
+            // Only clear auth if it's a 401 (unauthorized)
+            // Otherwise, use the cached user data
+            if ((error as any)?.response?.status === 401) {
+              console.log('[Auth] Clearing auth due to 401')
+              clearAuthState()
+            } else {
+              console.log('[Auth] Using cached user data despite verification failure')
+            }
           }
+        } else {
+          console.log('[Auth] No stored credentials found')
         }
       } catch (error) {
-        console.error('Auth initialization error:', error)
+        console.error('[Auth] Auth initialization error:', error)
         clearAuthState()
       } finally {
+        console.log('[Auth] Auth initialization complete, isAuthenticated:', !!user && !!token)
         setIsLoading(false)
       }
     }
@@ -64,9 +84,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string) => {
     try {
+      console.log('[Auth] Attempting login for user:', username)
       const response = await endpoints.auth.login({ username, password })
       const { user: userData, token: authToken } = response.data
 
+      console.log('[Auth] Login successful, setting state and localStorage', userData)
+      
       setUser(userData)
       setToken(authToken)
       
@@ -75,7 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Set authorization header
       api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`
+      
+      console.log('[Auth] Login complete, token saved')
     } catch (error: any) {
+      console.error('[Auth] Login failed:', error)
       throw new Error(error.response?.data?.error || 'Login failed')
     }
   }

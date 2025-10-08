@@ -266,3 +266,34 @@ func (s *cvExtractService) UpdateFileProgress(requestID string, currentFile int,
 
 	return updatedExtract, nil
 }
+
+// CheckAndCompleteExtract checks if all files have been processed and marks as completed if so
+func (s *cvExtractService) CheckAndCompleteExtract(requestID string) (*models.CVExtract, error) {
+	// Get current extract status
+	extract, err := s.extractRepo.GetByRequestID(requestID)
+	if err != nil {
+		return nil, fmt.Errorf("CV extract not found: %w", err)
+	}
+
+	// Check if all files have been processed (successful + failed)
+	totalProcessed := extract.FilesProcessed + extract.FilesFailed
+	if totalProcessed >= extract.NumFiles {
+		// All files processed, mark as completed
+		now := time.Now()
+		status := models.CVExtractStatusCompleted
+		updateData := models.CVExtractUpdate{
+			Status:      &status,
+			CompletedAt: &now,
+		}
+
+		updatedExtract, err := s.extractRepo.Update(extract.ID, updateData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to mark CV extract as completed: %w", err)
+		}
+
+		return updatedExtract, nil
+	}
+
+	// Not all files processed yet, return current status
+	return extract, nil
+}

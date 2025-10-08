@@ -348,14 +348,29 @@ func (h *ExtractHandlers) ExtractProcess(c *fiber.Ctx) error {
 
 	var extractedData map[string]interface{}
 	if err := json.Unmarshal([]byte(result.ProcessedContent), &extractedData); err != nil {
-		// CV Extract Tracking: Mark as failed if parsing fails
+		// CV Extract Tracking: Update file failure count instead of marking entire extraction as failed
 		if cvExtract != nil && request.ExtractRequestId != "" {
-			_, markErr := h.cvExtractService.MarkExtractFailed(
+			cvExtract, updateErr := h.cvExtractService.UpdateFileProgress(
 				request.ExtractRequestId,
-				"Failed to parse extracted data: "+err.Error(),
+				request.FileNumber,
+				cvExtract.FilesProcessed, // keep current processed count
+				cvExtract.FilesFailed+1,  // increment failed count
 			)
-			if markErr != nil {
-				fmt.Printf("Warning: Failed to mark CV extract as failed: %v\n", markErr)
+			if updateErr != nil {
+				fmt.Printf("Warning: Failed to update CV extract progress: %v\n", updateErr)
+			} else {
+				// Check if all files have been processed (using cached extract)
+				totalProcessed := cvExtract.FilesProcessed + cvExtract.FilesFailed
+				if totalProcessed >= cvExtract.NumFiles {
+					// All files processed, mark as completed
+					_, markErr := h.cvExtractService.MarkExtractSuccess(
+						request.ExtractRequestId,
+						0, // No processing time for failed file
+					)
+					if markErr != nil {
+						fmt.Printf("Warning: Failed to mark CV extract as completed: %v\n", markErr)
+					}
+				}
 			}
 		}
 
@@ -378,14 +393,29 @@ func (h *ExtractHandlers) ExtractProcess(c *fiber.Ctx) error {
 		request.ResumeURL,
 	)
 	if err != nil {
-		// CV Extract Tracking: Mark as failed if candidate extraction fails
+		// CV Extract Tracking: Update file failure count instead of marking entire extraction as failed
 		if cvExtract != nil && request.ExtractRequestId != "" {
-			_, markErr := h.cvExtractService.MarkExtractFailed(
+			cvExtract, updateErr := h.cvExtractService.UpdateFileProgress(
 				request.ExtractRequestId,
-				"Failed to process candidate extraction: "+err.Error(),
+				request.FileNumber,
+				cvExtract.FilesProcessed, // keep current processed count
+				cvExtract.FilesFailed+1,  // increment failed count
 			)
-			if markErr != nil {
-				fmt.Printf("Warning: Failed to mark CV extract as failed: %v\n", markErr)
+			if updateErr != nil {
+				fmt.Printf("Warning: Failed to update CV extract progress: %v\n", updateErr)
+			} else {
+				// Check if all files have been processed (using cached extract)
+				totalProcessed := cvExtract.FilesProcessed + cvExtract.FilesFailed
+				if totalProcessed >= cvExtract.NumFiles {
+					// All files processed, mark as completed
+					_, markErr := h.cvExtractService.MarkExtractSuccess(
+						request.ExtractRequestId,
+						0, // No processing time for failed file
+					)
+					if markErr != nil {
+						fmt.Printf("Warning: Failed to mark CV extract as completed: %v\n", markErr)
+					}
+				}
 			}
 		}
 
@@ -395,32 +425,32 @@ func (h *ExtractHandlers) ExtractProcess(c *fiber.Ctx) error {
 		})
 	}
 
-	//h.aiAgentService.UpdateAIAgentStatus(aiAgentRequest.ID, aiAgentRequest.Status)
-
 	// CV Extract Tracking: Update completion status based on results
 	if cvExtract != nil && request.ExtractRequestId != "" {
 		// Calculate total processing time
 		totalTimeMs := int64(result.ProcessingTime + candidateResult.ProcessingTime)
 
-		// Update file progress
-		_, err := h.cvExtractService.UpdateFileProgress(
+		// Update file progress - increment the processed count and get updated record back
+		cvExtract, err := h.cvExtractService.UpdateFileProgress(
 			request.ExtractRequestId,
 			request.FileNumber,
-			1, // files processed (current file)
-			0, // files failed
+			cvExtract.FilesProcessed+1, // increment processed count
+			cvExtract.FilesFailed,      // keep current failed count
 		)
 		if err != nil {
 			fmt.Printf("Warning: Failed to update CV extract progress: %v\n", err)
-		}
-
-		// Mark as successful completion
-		_, err = h.cvExtractService.MarkExtractSuccess(
-			request.ExtractRequestId,
-			totalTimeMs,
-		)
-		if err != nil {
-			// Log error but don't fail the response
-			fmt.Printf("Warning: Failed to mark CV extract as successful: %v\n", err)
+		} else {
+			// Check if all files have been processed (using cached extract)
+			if cvExtract.FilesProcessed >= cvExtract.NumFiles {
+				// This was the last file, mark as completed
+				_, err = h.cvExtractService.MarkExtractSuccess(
+					request.ExtractRequestId,
+					totalTimeMs,
+				)
+				if err != nil {
+					fmt.Printf("Warning: Failed to mark CV extract as successful: %v\n", err)
+				}
+			}
 		}
 	}
 

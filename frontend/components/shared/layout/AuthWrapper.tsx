@@ -25,7 +25,10 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   // Show login/register forms if not authenticated
   if (!isAuthenticated) {
-    return <AuthCard onSuccess={() => window.location.reload()} />
+    return <AuthCard onSuccess={() => {
+      // Reload to re-initialize auth state
+      window.location.href = '/'
+    }} />
   }
 
   // Show main application if authenticated

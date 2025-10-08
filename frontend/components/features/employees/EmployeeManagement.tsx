@@ -53,6 +53,11 @@ export function EmployeeManagement() {
   })
   const [formError, setFormError] = useState<string | null>(null)
   const [formLoading, setFormLoading] = useState(false)
+  const [getLatestLoading, setGetLatestLoading] = useState(false)
+  const [getAllLoading, setGetAllLoading] = useState(false)
+  const [getLatestSuccess, setGetLatestSuccess] = useState(false)
+  const [getAllSuccess, setGetAllSuccess] = useState(false)
+  const [webhookError, setWebhookError] = useState<string | null>(null)
 
   // Permissions
   const canManageEmployees = isAdmin() || isHRManager()
@@ -189,6 +194,67 @@ export function EmployeeManagement() {
     setFormError(null)
   }
 
+  const callWebhook = async (includeDate = true, buttonType: 'latest' | 'all' = 'latest') => {
+    // Set loading state based on button type
+    if (buttonType === 'latest') {
+      setGetLatestLoading(true)
+      setGetLatestSuccess(false)
+    } else {
+      setGetAllLoading(true)
+      setGetAllSuccess(false)
+    }
+    setWebhookError(null)
+    
+    try {
+      const webhookUrl = process.env.NEXT_PUBLIC_WEBHOOK_URL
+      if (!webhookUrl) {
+        throw new Error('Webhook URL not configured')
+      }
+      
+      // Build request body based on whether to include date filter
+      const requestBody: any = {
+        source: 'employee-management'
+      }
+      
+      if (includeDate) {
+        let date = new Date()
+        date.setDate(date.getDate() - 1)
+        date.setHours(0, 0, 0, 0) // Set to beginning of the day (00:00:00)
+        requestBody.timestamp = date.toISOString()
+      }
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Webhook failed with status: ${response.status}`)
+      }
+      
+      // Set success state based on button type
+      if (buttonType === 'latest') {
+        setGetLatestSuccess(true)
+        setTimeout(() => setGetLatestSuccess(false), 3000)
+      } else {
+        setGetAllSuccess(true)
+        setTimeout(() => setGetAllSuccess(false), 3000)
+      }
+    } catch (err) {
+      setWebhookError(err instanceof Error ? err.message : 'Failed to call webhook')
+    } finally {
+      // Clear loading state based on button type
+      if (buttonType === 'latest') {
+        setGetLatestLoading(false)
+      } else {
+        setGetAllLoading(false)
+      }
+    }
+  }
+
   // Loading state
   if (loading && !employees) {
     return (
@@ -234,9 +300,34 @@ export function EmployeeManagement() {
             >
               Add Employee
             </Button>
+            <Button
+              variant="contained"
+              color={getLatestSuccess ? "success" : "primary"}
+              onClick={() => callWebhook(true, 'latest')}
+              disabled={getLatestLoading}
+              size="large"
+            >
+              {getLatestLoading ? 'Calling...' : getLatestSuccess ? 'Get Latest Called!' : 'Get Latest'}
+            </Button>
+            <Button
+              variant="contained"
+              color={getAllSuccess ? "success" : "primary"}
+              onClick={() => callWebhook(false, 'all')}
+              disabled={getAllLoading}
+              size="large"
+            >
+              {getAllLoading ? 'Calling...' : getAllSuccess ? 'Get All Called!' : 'Get All'}
+            </Button>
           </Box>
         )}
       </Box>
+
+      {/* Webhook Error Alert */}
+      {webhookError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setWebhookError(null)}>
+          {webhookError}
+        </Alert>
+      )}
 
       {/* Search and Filters */}
       <Card sx={{ mb: 3 }}>
