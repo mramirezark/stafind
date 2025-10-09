@@ -24,6 +24,13 @@ export class EmployeeService extends BaseApiService {
   }
 
   /**
+   * Get all employees (bypassing cache)
+   */
+  async getEmployeesFresh(): Promise<Employee[]> {
+    return this.request('GET', '/api/v1/employees', undefined, false)
+  }
+
+  /**
    * Get employee by ID
    */
   async getEmployee(id: number): Promise<Employee> {

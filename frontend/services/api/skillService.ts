@@ -24,6 +24,13 @@ export class SkillService extends BaseApiService {
   }
 
   /**
+   * Get all skills (bypassing cache)
+   */
+  async getSkillsFresh(): Promise<Skill[]> {
+    return this.request('GET', '/api/v1/skills', undefined, false)
+  }
+
+  /**
    * Get skill by ID
    */
   async getSkill(id: number): Promise<Skill> {

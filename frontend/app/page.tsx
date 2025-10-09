@@ -48,17 +48,17 @@ function MainApp() {
   const renderActiveView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard />
+        return <Dashboard key="dashboard" />
       case 'employee':
-        return <EmployeeManagement />
+        return <EmployeeManagement key="employee" />
       case 'skills':
-        return <SkillManagement />
+        return <SkillManagement key="skills" />
       case 'ai-agent':
-        return <AIAgentManagement />
+        return <AIAgentManagement key="ai-agent" />
       case 'admin':
-        return <AdminDashboard />
+        return <AdminDashboard key="admin" />
       default:
-        return <Dashboard />
+        return <Dashboard key="default" />
     }
   }
 

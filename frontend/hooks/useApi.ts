@@ -17,7 +17,7 @@ import { aiAgentService, AIAgentRequest, AIAgentResponse, SkillExtractionRespons
 import { Employee, Skill, User, SearchCriteria, DashboardStats, DashboardMetrics, TopSuggestedEmployee, SkillDemandStats } from '@/types'
 
 // ============================================================================
-// GENERIC API HOOK
+// GENERIC API HOOKS
 // ============================================================================
 
 interface UseApiState<T> {
@@ -27,6 +27,10 @@ interface UseApiState<T> {
   refetch: () => Promise<void>
 }
 
+/**
+ * Generic hook for API calls
+ * Fetches data on mount and provides manual refetch
+ */
 export function useApi<T>(
   apiCall: () => Promise<T>,
   dependencies: any[] = []
@@ -49,6 +53,47 @@ export function useApi<T>(
     }
   }, dependencies)
 
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
+  }
+}
+
+/**
+ * Generic hook for fetching fresh data (bypassing cache)
+ * Used for data that needs to be refreshed frequently (e.g., after mutations)
+ */
+function useFreshData<T>(
+  fetchFreshFn: () => Promise<T>,
+  errorContext: string
+): UseApiState<T> {
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      // Always fetch fresh data to avoid cache issues
+      const result = await fetchFreshFn()
+      setData(result)
+    } catch (err: any) {
+      setError(err.message)
+      console.error(`Error fetching ${errorContext}:`, err)
+    } finally {
+      setLoading(false)
+    }
+  }, []) // Empty deps - fetchFreshFn is stable from parent
+
+  // Fetch data on component mount only (once per component lifecycle)
   useEffect(() => {
     fetchData()
   }, [fetchData])
@@ -66,7 +111,9 @@ export function useApi<T>(
 // ============================================================================
 
 export function useEmployees() {
-  return useApi(() => employeeService.getEmployees())
+  // Use useCallback to ensure the function reference is stable
+  const fetchFn = useCallback(() => employeeService.getEmployeesFresh(), [])
+  return useFreshData(fetchFn, 'employees')
 }
 
 export function useEmployee(id: number) {
@@ -153,7 +200,9 @@ export function useDeleteEmployee() {
 // ============================================================================
 
 export function useSkills() {
-  return useApi(() => skillService.getSkills())
+  // Use useCallback to ensure the function reference is stable
+  const fetchFn = useCallback(() => skillService.getSkillsFresh(), [])
+  return useFreshData(fetchFn, 'skills')
 }
 
 export function useCreateSkill() {
@@ -218,15 +267,15 @@ export function useSearchEmployees() {
 // ============================================================================
 
 export function useDashboardData() {
-  return useApi(() => dashboardService.getDashboardData())
+  return useApi(() => dashboardService.getDashboardData(), [])
 }
 
 export function useDashboardStats() {
-  return useApi(() => dashboardService.getDashboardStats())
+  return useApi(() => dashboardService.getDashboardStats(), [])
 }
 
 export function useDashboardMetrics() {
-  return useApi(() => dashboardService.getDashboardMetrics())
+  return useApi(() => dashboardService.getDashboardMetrics(), [])
 }
 
 export function useTopSuggestedEmployees(limit: number = 5) {
@@ -234,7 +283,7 @@ export function useTopSuggestedEmployees(limit: number = 5) {
 }
 
 export function useSkillDemandStats() {
-  return useApi(() => dashboardService.getSkillDemandStats())
+  return useApi(() => dashboardService.getSkillDemandStats(), [])
 }
 
 // ============================================================================

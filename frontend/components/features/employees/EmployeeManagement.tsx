@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Box,
   Card,
@@ -10,6 +10,10 @@ import {
   Alert,
   CircularProgress,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material'
 import { Add as AddIcon } from '@mui/icons-material'
 import { useEmployees, useSkills, useCreateEmployee, useUpdateEmployee, useDeleteEmployee } from '@/hooks/useApi'
@@ -30,6 +34,16 @@ export function EmployeeManagement() {
   const { deleteEmployee } = useDeleteEmployee()
   const { data: skills, loading: skillsLoading } = useSkills()
   const { isAdmin, isHRManager } = useAuth()
+
+  // Debug: Log when employees data changes
+  useEffect(() => {
+    if (employees) {
+      console.log('Employees data changed:', {
+        count: employees.length,
+        employees: employees.map(emp => ({ id: emp.id, name: emp.name }))
+      })
+    }
+  }, [employees])
 
   // State
   const [filters, setFilters] = useState<SearchFilters>({
@@ -58,6 +72,11 @@ export function EmployeeManagement() {
   const [getLatestSuccess, setGetLatestSuccess] = useState(false)
   const [getAllSuccess, setGetAllSuccess] = useState(false)
   const [webhookError, setWebhookError] = useState<string | null>(null)
+  
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Permissions
   const canManageEmployees = isAdmin() || isHRManager()
@@ -132,14 +151,35 @@ export function EmployeeManagement() {
     setFormOpen(true)
   }
 
-  const handleDeleteEmployee = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
-      try {
-        await deleteEmployee(id)
-      } catch (error) {
-        console.error('Failed to delete employee:', error)
-      }
+  const handleDeleteEmployee = (id: number) => {
+    const employee = employees?.find(emp => emp.id === id)
+    if (employee) {
+      setEmployeeToDelete(employee)
+      setDeleteDialogOpen(true)
     }
+  }
+
+  const confirmDeleteEmployee = async () => {
+    if (!employeeToDelete) return
+
+    setDeleteLoading(true)
+    try {
+      await deleteEmployee(employeeToDelete.id)
+      setDeleteDialogOpen(false)
+      setEmployeeToDelete(null)
+      // Refresh the employee list after successful deletion
+      refetch()
+    } catch (error) {
+      console.error('Failed to delete employee:', error)
+      // You could add a toast notification here for better UX
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  const cancelDeleteEmployee = () => {
+    setDeleteDialogOpen(false)
+    setEmployeeToDelete(null)
   }
 
   const handleFormSubmit = async (data: EmployeeFormData) => {
@@ -385,6 +425,44 @@ export function EmployeeManagement() {
         loading={formLoading}
         error={formError}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={cancelDeleteEmployee}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Delete Employee
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete{' '}
+            <strong>{employeeToDelete?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone. All employee data will be permanently removed.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={cancelDeleteEmployee}
+            disabled={deleteLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDeleteEmployee}
+            color="error"
+            variant="contained"
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={20} /> : null}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   )
